@@ -2,6 +2,8 @@ package utils;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.querydsl.QPageRequest;
+import org.springframework.data.querydsl.QSort;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -47,7 +49,7 @@ public class MyPageable implements Pageable {
 
     @Override
     public Pageable withPage(int pageNumber) {
-        return null;
+        return new QPageRequest(pageNumber, getPageSize(), (QSort) sort);
     }
 
     public boolean hasPrevious() {
