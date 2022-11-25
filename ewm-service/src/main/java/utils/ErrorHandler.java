@@ -62,7 +62,7 @@ public class ErrorHandler {
         log.info("400 {}", e.getMessage(), e);
         return new ApiError(getStackTrace(e), e.getMessage(), e.getCause().getMessage(), HttpStatus.BAD_REQUEST);
     }
-    
+
     private String getStackTrace(Exception e) {
         Writer writer = new StringWriter();
         e.printStackTrace(new PrintWriter(writer));
