@@ -49,7 +49,7 @@ public class MyPageable implements Pageable {
 
     @Override
     public Pageable withPage(int pageNumber) {
-        return new QPageRequest(pageNumber, getPageSize(), (QSort) sort);
+        return new MyPageable(offset + size, size, sort);
     }
 
     public boolean hasPrevious() {
