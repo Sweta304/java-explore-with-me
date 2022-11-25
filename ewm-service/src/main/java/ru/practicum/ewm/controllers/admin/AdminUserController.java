@@ -1,6 +1,7 @@
 package ru.practicum.ewm.controllers.admin;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.user.EmailException;
 import ru.practicum.ewm.user.UserAlreadyExistsException;
@@ -16,7 +17,7 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
-
+@Validated
 @RestController
 @RequestMapping(path = "/admin/users")
 public class AdminUserController {
