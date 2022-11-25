@@ -2,8 +2,6 @@ package utils;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.querydsl.QPageRequest;
-import org.springframework.data.querydsl.QSort;
 
 import java.util.Objects;
 import java.util.Optional;
