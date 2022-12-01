@@ -40,7 +40,7 @@ import static ru.practicum.ewm.event.EventMapper.fromNewEventDto;
 import static ru.practicum.ewm.event.EventMapper.toEventFullDto;
 import static ru.practicum.ewm.request.RequestMapper.toParticipationRequestDto;
 import static utils.Constants.DATE_TIME_FORMATTER;
-import static utils.Constants.sortById;
+import static utils.Constants.SORT_BY_ID;
 
 
 @Service
@@ -70,7 +70,7 @@ public class EventsServiceImpl implements EventsService {
                                                    String rangeEnd,
                                                    Integer from,
                                                    Integer size) throws IncorrectEventStateException {
-        Pageable page = new MyPageable(from, size, sortById);
+        Pageable page = new MyPageable(from, size, SORT_BY_ID);
         List<EventStates> eventStates;
         LocalDateTime rangeStartFilter = LocalDateTime.parse(rangeStart, DATE_TIME_FORMATTER);
         LocalDateTime rangeEndFilter = LocalDateTime.parse(rangeEnd, DATE_TIME_FORMATTER);
@@ -200,7 +200,7 @@ public class EventsServiceImpl implements EventsService {
 
     public List<EventShortDto> getAllEventsByUserId(Long userId, Integer from, Integer size) throws UserNotFoundException {
         User user = userJpaRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("Пользователя не существует", "Пользователь с id " + userId + " не найден"));
-        Pageable page = new MyPageable(from, size, sortById);
+        Pageable page = new MyPageable(from, size, SORT_BY_ID);
         List<Event> events = eventJpaRepository.findByInitiator(user, page).getContent();
         return events.stream()
                 .map(EventMapper::toEventShortDto)

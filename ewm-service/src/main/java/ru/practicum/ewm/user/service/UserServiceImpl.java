@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import static ru.practicum.ewm.user.UserMapper.fromUserRequestDto;
 import static ru.practicum.ewm.user.UserMapper.toUserDto;
 import static ru.practicum.ewm.user.dto.NewUserRequest.validateMail;
-import static utils.Constants.sortById;
+import static utils.Constants.SORT_BY_ID;
 
 
 @Service
@@ -46,7 +46,7 @@ public class UserServiceImpl implements UserService {
     }
 
     public List<UserDto> getAllUsers(List<Long> ids, Integer from, Integer size) {
-        Pageable page = new MyPageable(from, size, sortById);
+        Pageable page = new MyPageable(from, size, SORT_BY_ID);
         Page<User> requestPage = userRepository.findAllByList(ids, page);
         return requestPage.getContent()
                 .stream()

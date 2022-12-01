@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.compilation.CompilationMapper.fromNewCompilationDto;
 import static ru.practicum.ewm.compilation.CompilationMapper.toCompilationDto;
-import static utils.Constants.sortById;
+import static utils.Constants.SORT_BY_ID;
 
 
 @Service
@@ -83,7 +83,7 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
-        Pageable page = new MyPageable(from, size, sortById);
+        Pageable page = new MyPageable(from, size, SORT_BY_ID);
         List<Compilation> compilations;
         if (pinned == null) {
             compilations = compilationJpaRepository.findAll(page).getContent();

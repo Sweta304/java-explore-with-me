@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.category.CategoryMapper.fromNewCategoryDto;
 import static ru.practicum.ewm.category.CategoryMapper.toCategoryDto;
-import static utils.Constants.sortById;
+import static utils.Constants.SORT_BY_ID;
 
 
 @Service
@@ -60,7 +60,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     public List<CategoryDto> findAll(Integer from, Integer size) {
-        Pageable page = new MyPageable(from, size, sortById);
+        Pageable page = new MyPageable(from, size, SORT_BY_ID);
         List<Category> categories = categoryJpaRepository.findAll(page).getContent();
         return categories.stream()
                 .map(CategoryMapper::toCategoryDto)
