@@ -1,14 +1,18 @@
 package ru.practicum.ewm.user.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.jackson.Jacksonized;
 
 import java.util.Objects;
 
 @Getter
 @Setter
 @AllArgsConstructor
+@Builder
+@Jacksonized
 public class NewUserRequest {
     private String name;
     private String email;

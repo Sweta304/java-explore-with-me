@@ -1,10 +1,10 @@
 package ru.practicum.ewm.user.service;
 
 
-import ru.practicum.ewm.user.EmailException;
-import ru.practicum.ewm.user.UserAlreadyExistsException;
-import ru.practicum.ewm.user.UserNotFoundException;
-import ru.practicum.ewm.user.ValidationException;
+import ru.practicum.ewm.exceptions.EmailException;
+import ru.practicum.ewm.exceptions.UserAlreadyExistsException;
+import ru.practicum.ewm.exceptions.UserNotFoundException;
+import ru.practicum.ewm.exceptions.ValidationException;
 import ru.practicum.ewm.user.dto.NewUserRequest;
 import ru.practicum.ewm.user.dto.UserDto;
 

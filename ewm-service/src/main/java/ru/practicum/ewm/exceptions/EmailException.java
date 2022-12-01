@@ -1,4 +1,4 @@
-package ru.practicum.ewm.user;
+package ru.practicum.ewm.exceptions;
 
 public class EmailException extends Exception {
 

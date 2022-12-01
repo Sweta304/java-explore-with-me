@@ -1,9 +1,6 @@
-package ru.practicum.ewm.user.dto;
+package ru.practicum.ewm.category.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.extern.jackson.Jacksonized;
 
 import java.util.Objects;
@@ -13,7 +10,7 @@ import java.util.Objects;
 @AllArgsConstructor
 @Builder
 @Jacksonized
-public class UserShortDto {
+public class CategoryDto {
     private Long id;
     private String name;
 
@@ -21,8 +18,8 @@ public class UserShortDto {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        UserShortDto userDto = (UserShortDto) o;
-        return Objects.equals(id, userDto.id) && Objects.equals(name, userDto.name);
+        CategoryDto that = (CategoryDto) o;
+        return Objects.equals(id, that.id) && Objects.equals(name, that.name);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package ru.practicum.ewm.user.dto;
+package ru.practicum.ewm.category.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,21 +13,19 @@ import java.util.Objects;
 @AllArgsConstructor
 @Builder
 @Jacksonized
-public class UserDto {
-    private Long id;
+public class NewCategoryDto {
     private String name;
-    private String email;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        UserDto userDto = (UserDto) o;
-        return Objects.equals(id, userDto.id) && Objects.equals(name, userDto.name) && Objects.equals(email, userDto.email);
+        NewCategoryDto that = (NewCategoryDto) o;
+        return Objects.equals(name, that.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, email);
+        return Objects.hash(name);
     }
 }

@@ -7,12 +7,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.practicum.ewm.controllers.admin.AdminUserController;
-import ru.practicum.ewm.exceptions.ApiError;
-import ru.practicum.ewm.user.EmailException;
-import ru.practicum.ewm.user.UserAlreadyExistsException;
-import ru.practicum.ewm.user.UserNotFoundException;
-import ru.practicum.ewm.user.ValidationException;
+import ru.practicum.ewm.exceptions.*;
 
+import javax.validation.ConstraintViolationException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -42,6 +39,13 @@ public class ErrorHandler {
         return new ApiError(getStackTrace(e), e.getMessage(), e.getCause().getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ApiError handle(final ConstraintViolationException e) {
+        log.info("500 {}", e.getMessage(), e);
+        return new ApiError(getStackTrace(e), e.getMessage(), e.getCause().getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @ExceptionHandler(UserAlreadyExistsException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError handle(final UserAlreadyExistsException e) {
@@ -61,6 +65,62 @@ public class ErrorHandler {
     public ApiError handle(final MethodArgumentNotValidException e) {
         log.info("400 {}", e.getMessage(), e);
         return new ApiError(getStackTrace(e), e.getMessage(), e.getCause().getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handle(final IllegalArgumentException e) {
+        log.info("400 {}", e.getMessage(), e);
+        return new ApiError(getStackTrace(e), e.getMessage(), e.getCause().getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IncorrectEventStateException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handle(final IncorrectEventStateException e) {
+        log.info("400 {}", e.getMessage(), e);
+        return new ApiError(getStackTrace(e), e.getMessage(), e.getCause().getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(EventNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiError handle(final EventNotFoundException e) {
+        log.info("404 {}", e.getMessage(), e);
+        return new ApiError(getStackTrace(e), e.getMessage(), e.getReason(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(IncorrectEventParamsException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiError handle(final IncorrectEventParamsException e) {
+        log.info("403 {}", e.getMessage(), e);
+        return new ApiError(getStackTrace(e), e.getMessage(), e.getReason(), HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(CategoryNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiError handle(final CategoryNotFoundException e) {
+        log.info("404 {}", e.getMessage(), e);
+        return new ApiError(getStackTrace(e), e.getMessage(), e.getReason(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(CompilationNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiError handle(final CompilationNotFoundException e) {
+        log.info("404 {}", e.getMessage(), e);
+        return new ApiError(getStackTrace(e), e.getMessage(), e.getReason(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiError handle(final ConflictException e) {
+        log.info("409 {}", e.getMessage(), e);
+        return new ApiError(getStackTrace(e), e.getMessage(), e.getReason(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiError handle(final ForbiddenException e) {
+        log.info("403 {}", e.getMessage(), e);
+        return new ApiError(getStackTrace(e), e.getMessage(), e.getReason(), HttpStatus.FORBIDDEN);
     }
 
     private String getStackTrace(Exception e) {

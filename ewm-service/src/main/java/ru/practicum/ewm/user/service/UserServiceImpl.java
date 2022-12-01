@@ -4,11 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import ru.practicum.ewm.user.EmailException;
-import ru.practicum.ewm.user.UserNotFoundException;
-import ru.practicum.ewm.user.ValidationException;
+import ru.practicum.ewm.exceptions.EmailException;
+import ru.practicum.ewm.exceptions.UserNotFoundException;
+import ru.practicum.ewm.exceptions.ValidationException;
 import ru.practicum.ewm.user.dto.NewUserRequest;
 import ru.practicum.ewm.user.dto.UserDto;
 import ru.practicum.ewm.user.model.User;
@@ -21,6 +20,7 @@ import java.util.stream.Collectors;
 import static ru.practicum.ewm.user.UserMapper.fromUserRequestDto;
 import static ru.practicum.ewm.user.UserMapper.toUserDto;
 import static ru.practicum.ewm.user.dto.NewUserRequest.validateMail;
+import static utils.Constants.sortById;
 
 
 @Service
@@ -46,8 +46,7 @@ public class UserServiceImpl implements UserService {
     }
 
     public List<UserDto> getAllUsers(List<Long> ids, Integer from, Integer size) {
-        Sort sort = Sort.by(Sort.Direction.DESC, "id");
-        Pageable page = new MyPageable(from, size, sort);
+        Pageable page = new MyPageable(from, size, sortById);
         Page<User> requestPage = userRepository.findAllByList(ids, page);
         return requestPage.getContent()
                 .stream()
