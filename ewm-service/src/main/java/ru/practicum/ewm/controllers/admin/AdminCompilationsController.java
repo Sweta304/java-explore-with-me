@@ -48,7 +48,7 @@ public class AdminCompilationsController {
 
     @PatchMapping("/{compId}/events/{eventId}")
     public void addEventToCompilation(@PathVariable @Positive Long compId,
-                                           @PathVariable @Positive Long eventId) throws CompilationNotFoundException,
+                                      @PathVariable @Positive Long eventId) throws CompilationNotFoundException,
             EventNotFoundException, ForbiddenException {
         log.info("Админ удаляет событие {} из подборки {}", eventId, compId);
         compilationService.addEventToCompilation(compId, eventId);

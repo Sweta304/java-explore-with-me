@@ -11,6 +11,8 @@ import java.util.Optional;
 @Repository
 public interface RequestsJpaRepository extends JpaRepository<Request, Long>, QuerydslPredicateExecutor<Request> {
     List<Request> findByEventId(Long eventId);
+
     List<Request> findByRequesterId(Long requesterId);
+
     Optional<Request> findByEventIdAndRequesterId(Long eventId, Long requesterId);
 }

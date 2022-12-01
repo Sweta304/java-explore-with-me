@@ -33,14 +33,14 @@ public class PrivateRequestsController {
 
     @PostMapping
     public ParticipationRequestDto addRequest(@PathVariable @Positive Long userId,
-                                          @RequestParam @Positive Long eventId) throws UserNotFoundException, ForbiddenException, EventNotFoundException {
+                                              @RequestParam @Positive Long eventId) throws UserNotFoundException, ForbiddenException, EventNotFoundException {
         log.info("Добавление пользователем с id {} нового запроса на участие в мероприятии {}", userId, eventId);
         return requestsService.addRequest(userId, eventId);
     }
 
     @PatchMapping("/{requestId}/cancel")
     public ParticipationRequestDto cancelRequest(@PathVariable @Positive Long userId,
-                                              @PathVariable @Positive Long requestId) throws UserNotFoundException, ForbiddenException, EventNotFoundException {
+                                                 @PathVariable @Positive Long requestId) throws UserNotFoundException, ForbiddenException, EventNotFoundException {
         log.info("Отмена пользователем с id {} запроса {} на участие в мероприятии", userId, requestId);
         return requestsService.cancelRequest(userId, requestId);
     }

@@ -80,8 +80,8 @@ public class PrivateEventsController {
 
     @PatchMapping("/{eventId}/requests/{reqId}/reject")
     public ParticipationRequestDto rejectEventRequest(@PathVariable @Positive Long userId,
-                                                       @PathVariable @Positive Long eventId,
-                                                       @PathVariable @Positive Long reqId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
+                                                      @PathVariable @Positive Long eventId,
+                                                      @PathVariable @Positive Long reqId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
         log.info("Отклонение запроса с id {} на участие в мероприятии с id {}", reqId, eventId);
         return eventsService.rejectEventRequest(userId, eventId, reqId);
     }

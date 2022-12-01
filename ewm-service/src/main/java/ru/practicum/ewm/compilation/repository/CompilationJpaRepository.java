@@ -15,5 +15,6 @@ public interface CompilationJpaRepository extends JpaRepository<Compilation, Lon
     List<Compilation> findAllByEventsContaining(Event event);
 
     Page<Compilation> findAll(Pageable pageable);
+
     Page<Compilation> findByPinned(Boolean pinned, Pageable pageable);
 }
