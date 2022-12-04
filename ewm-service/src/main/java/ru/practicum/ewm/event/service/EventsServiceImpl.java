@@ -9,24 +9,27 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.category.model.Category;
 import ru.practicum.ewm.category.repository.CategoryJpaRepository;
+import ru.practicum.ewm.client.HitClient;
+import ru.practicum.ewm.client.StatsClient;
 import ru.practicum.ewm.dictionary.EventSorting;
 import ru.practicum.ewm.dictionary.EventStates;
 import ru.practicum.ewm.event.EventMapper;
 import ru.practicum.ewm.event.dto.*;
 import ru.practicum.ewm.event.model.Event;
-import ru.practicum.ewm.event.model.QEvent;
 import ru.practicum.ewm.event.repository.EventJpaRepository;
 import ru.practicum.ewm.exceptions.*;
 import ru.practicum.ewm.request.RequestMapper;
 import ru.practicum.ewm.request.dto.ParticipationRequestDto;
 import ru.practicum.ewm.request.model.Request;
 import ru.practicum.ewm.request.repository.RequestsJpaRepository;
+import ru.practicum.ewm.statistics.dto.EndpointHit;
 import ru.practicum.ewm.user.model.User;
 import ru.practicum.ewm.user.repository.UserJpaRepository;
 import utils.MyPageable;
-import utils.QAdminPredicates;
+import utils.QPredicates;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +41,7 @@ import static ru.practicum.ewm.dictionary.RequestStates.CONFIRMED;
 import static ru.practicum.ewm.dictionary.RequestStates.REJECTED;
 import static ru.practicum.ewm.event.EventMapper.fromNewEventDto;
 import static ru.practicum.ewm.event.EventMapper.toEventFullDto;
+import static ru.practicum.ewm.event.model.QEvent.event;
 import static ru.practicum.ewm.request.RequestMapper.toParticipationRequestDto;
 import static utils.Constants.DATE_TIME_FORMATTER;
 import static utils.Constants.SORT_BY_ID;
@@ -51,16 +55,22 @@ public class EventsServiceImpl implements EventsService {
     private final UserJpaRepository userJpaRepository;
     private final CategoryJpaRepository categoryJpaRepository;
     private final RequestsJpaRepository requestsJpaRepository;
+    private final HitClient hitClient;
+    private final StatsClient statsClient;
 
     @Autowired
     public EventsServiceImpl(EventJpaRepository eventJpaRepository,
                              UserJpaRepository userJpaRepository,
                              CategoryJpaRepository categoryJpaRepository,
-                             RequestsJpaRepository requestsJpaRepository) {
+                             RequestsJpaRepository requestsJpaRepository,
+                             HitClient hitClient,
+                             StatsClient statsClient) {
         this.eventJpaRepository = eventJpaRepository;
         this.userJpaRepository = userJpaRepository;
         this.categoryJpaRepository = categoryJpaRepository;
         this.requestsJpaRepository = requestsJpaRepository;
+        this.hitClient = hitClient;
+        this.statsClient = statsClient;
     }
 
     public List<EventFullDto> getAllEventsByFilter(List<Long> users,
@@ -71,24 +81,32 @@ public class EventsServiceImpl implements EventsService {
                                                    Integer from,
                                                    Integer size) throws IncorrectEventStateException {
         Pageable page = new MyPageable(from, size, SORT_BY_ID);
-        List<EventStates> eventStates;
-        LocalDateTime rangeStartFilter = LocalDateTime.parse(rangeStart, DATE_TIME_FORMATTER);
-        LocalDateTime rangeEndFilter = LocalDateTime.parse(rangeEnd, DATE_TIME_FORMATTER);
-
-        try {
-            eventStates = states.stream()
-                    .map(EventStates::valueOf)
-                    .collect(Collectors.toList());
-        } catch (IllegalArgumentException e) {
-            throw new IncorrectEventStateException("Задан несуществующий статус события");
+        List<EventStates> eventStates = new ArrayList<>();
+        LocalDateTime rangeStartFilter = LocalDateTime.now().minusYears(5);
+        LocalDateTime rangeEndFilter = LocalDateTime.now().plusYears(5);
+        if (rangeStart != null) {
+            rangeStartFilter = LocalDateTime.parse(rangeStart, DATE_TIME_FORMATTER);
+        }
+        if (rangeEnd != null) {
+            rangeEndFilter = LocalDateTime.parse(rangeEnd, DATE_TIME_FORMATTER);
         }
 
-        Predicate predicate = QAdminPredicates.builder()
-                .add(users, QEvent.event.initiator.id::in)
-                .add(eventStates, QEvent.event.eventState::in)
-                .add(categories, QEvent.event.category.id::in)
-                .add(rangeStartFilter, QEvent.event.eventDate::after)
-                .add(rangeEndFilter, QEvent.event.eventDate::before)
+        if (states != null) {
+            try {
+                eventStates = states.stream()
+                        .map(EventStates::valueOf)
+                        .collect(Collectors.toList());
+            } catch (IllegalArgumentException e) {
+                throw new IncorrectEventStateException("Задан несуществующий статус события");
+            }
+        }
+
+        Predicate predicate = QPredicates.builder()
+                .add(users, event.initiator.id::in)
+                .add(eventStates, event.eventState::in)
+                .add(categories, event.category.id::in)
+                .add(rangeStartFilter, event.eventDate::after)
+                .add(rangeEndFilter, event.eventDate::before)
                 .buildAnd();
 
         Page<Event> requestPage = eventJpaRepository.findAll(predicate, page);
@@ -156,7 +174,9 @@ public class EventsServiceImpl implements EventsService {
                                                           Boolean onlyAvailable,
                                                           String sort,
                                                           Integer from,
-                                                          Integer size) throws IncorrectEventParamsException {
+                                                          Integer size,
+                                                          String ip,
+                                                          String uri) throws IncorrectEventParamsException {
         if (rangeStart == null) {
             rangeStart = LocalDateTime.now().format(DATE_TIME_FORMATTER);
         }
@@ -170,31 +190,32 @@ public class EventsServiceImpl implements EventsService {
         }
         Pageable page = new MyPageable(from, size, eventSort);
         LocalDateTime rangeStartFilter = LocalDateTime.parse(rangeStart, DATE_TIME_FORMATTER);
-        LocalDateTime rangeEndFilter = LocalDateTime.parse(rangeEnd, DATE_TIME_FORMATTER);
+        LocalDateTime rangeEndFilter = LocalDateTime.now().plusYears(5);
+        if (rangeEnd != null) {
+            rangeEndFilter = LocalDateTime.parse(rangeEnd, DATE_TIME_FORMATTER);
+        }
 
-        Predicate predicate = QAdminPredicates.builder()
-                .add(PUBLISHED, QEvent.event.eventState::eq)
-                .add(text, QEvent.event.annotation::containsIgnoreCase)
-                .add(text, QEvent.event.description::containsIgnoreCase)
-                .add(categories, QEvent.event.category.id::in)
-                .add(paid, QEvent.event.paid::eq)
-                .add(rangeStartFilter, QEvent.event.eventDate::after)
-                .add(rangeEndFilter, QEvent.event.eventDate::before)
-                .add(onlyAvailable, (QEvent.event.participantLimit.gt(QEvent.event.confirmedRequests))::eq)
+        Predicate predicate = QPredicates.builder()
+                .add(PUBLISHED, event.eventState::eq)
+                .add(text, event.annotation::containsIgnoreCase)
+//                .add(text, event.description::containsIgnoreCase)
+//                .add(categories, event.category.id::in)
+//                .add(paid, event.paid::eq)
+//                .add(rangeStartFilter, event.eventDate::after)
+//                .add(rangeEndFilter, event.eventDate::before)
+//                .add(onlyAvailable, (event.participantLimit.gt(event.confirmedRequests))::eq)
                 .buildAnd();
-
         Page<Event> requestPage = eventJpaRepository.findAll(predicate, page);
-
+        writeStats(ip, uri);
         return requestPage.getContent()
                 .stream()
                 .map(EventMapper::toEventShortDto)
                 .collect(Collectors.toList());
-
-        //TODO Сохранение инфы в сервисе статистики
     }
 
-    public EventFullDto getEvent(Long eventId) throws EventNotFoundException {
+    public EventFullDto getEvent(Long eventId, String ip, String uri) throws EventNotFoundException {
         Event event = eventJpaRepository.findEventByIdAndEventState(eventId, PUBLISHED).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Не найдено опубликованное событие с заданным id"));
+        writeStats(ip, uri);
         return toEventFullDto(event);
     }
 
@@ -243,10 +264,11 @@ public class EventsServiceImpl implements EventsService {
     }
 
     public EventFullDto addEvent(Long userId, NewEventDto newEventDto) throws UserNotFoundException, CategoryNotFoundException {
-        checkUser(userId);
+        User user = userJpaRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("Пользователя не существует", "Пользователь с id " + userId + " не найден"));
         Category category = categoryJpaRepository.findById(newEventDto.getCategory()).orElseThrow(() -> new CategoryNotFoundException("Невозможно создание события", "Указанная категория не существует"));
-        Event event = fromNewEventDto(newEventDto, category);
-        return toEventFullDto(eventJpaRepository.save(event));
+        Event event = fromNewEventDto(newEventDto, category, user);
+        event = eventJpaRepository.save(event);
+        return toEventFullDto(event);
     }
 
     public EventFullDto getEventByUser(Long userId, Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
@@ -320,5 +342,14 @@ public class EventsServiceImpl implements EventsService {
         if (!eventJpaRepository.findById(eventId).get().getInitiator().getId().equals(userId)) {
             throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
         }
+    }
+
+    private void writeStats(String ip, String uri) {
+        EndpointHit endpointHit = new EndpointHit();
+        endpointHit.setApp("ewm-service");
+        endpointHit.setIp(ip);
+        endpointHit.setUri(uri);
+        endpointHit.setTimestamp(LocalDateTime.now());
+        hitClient.addStatInfo(endpointHit);
     }
 }

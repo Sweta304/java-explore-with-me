@@ -33,9 +33,11 @@ public interface EventsService {
                                                    Boolean onlyAvailable,
                                                    String sort,
                                                    Integer from,
-                                                   Integer size) throws IncorrectEventParamsException;
+                                                   Integer size,
+                                                   String ip,
+                                                   String uri) throws IncorrectEventParamsException;
 
-    EventFullDto getEvent(Long eventId) throws EventNotFoundException;
+    EventFullDto getEvent(Long eventId, String ip, String uri) throws EventNotFoundException;
 
     List<EventShortDto> getAllEventsByUserId(Long userId, Integer from, Integer size) throws UserNotFoundException;
 

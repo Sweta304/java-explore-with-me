@@ -10,6 +10,7 @@ import ru.practicum.ewm.event.service.EventsService;
 import ru.practicum.ewm.exceptions.EventNotFoundException;
 import ru.practicum.ewm.exceptions.IncorrectEventParamsException;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
@@ -35,18 +36,19 @@ public class PublicEventsController {
                                             @RequestParam(required = false) Boolean onlyAvailable,
                                             @RequestParam(required = false, defaultValue = "EVENT_DATE") String sort,
                                             @RequestParam(required = false, defaultValue = "0") @PositiveOrZero Integer from,
-                                            @RequestParam(required = false, defaultValue = "10") @Positive Integer size) throws IncorrectEventParamsException {
+                                            @RequestParam(required = false, defaultValue = "10") @Positive Integer size,
+                                            HttpServletRequest request) throws IncorrectEventParamsException {
         log.info("Выполняется поиск событий по параметрам:\n" +
                 "аннотация или описание содержит - {}\n" +
                 "категории - {}\n" +
                 "начало события после - {}\n" +
                 "конец события до - {}\n", text, categories, rangeStart, rangeEnd);
-        return eventsService.getAllPublicEventsByFilter(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size);
+        return eventsService.getAllPublicEventsByFilter(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size, request.getRemoteAddr(), request.getRequestURI());
     }
 
-    @GetMapping("{eventId}")
-    public EventFullDto getEvent(@PathVariable Long eventId) throws EventNotFoundException {
-        log.info("Получение информации о событии {}", eventId);
-        return eventsService.getEvent(eventId);
+    @GetMapping("/{id}")
+    public EventFullDto getEvent(@PathVariable Long id, HttpServletRequest request) throws EventNotFoundException {
+        log.info("Получение информации о событии {}", id);
+        return eventsService.getEvent(id, request.getRemoteAddr(), request.getRequestURI());
     }
 }

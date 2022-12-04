@@ -7,12 +7,14 @@ import ru.practicum.ewm.event.dto.EventShortDto;
 import ru.practicum.ewm.event.dto.Location;
 import ru.practicum.ewm.event.dto.NewEventDto;
 import ru.practicum.ewm.event.model.Event;
+import ru.practicum.ewm.user.model.User;
 
 import java.time.LocalDateTime;
 
 import static ru.practicum.ewm.category.CategoryMapper.fromCategoryDto;
 import static ru.practicum.ewm.category.CategoryMapper.toCategoryDto;
 import static ru.practicum.ewm.dictionary.EventStates.PENDING;
+import static ru.practicum.ewm.dictionary.EventStates.PUBLISHED;
 import static ru.practicum.ewm.user.UserMapper.fromUserShortDto;
 import static ru.practicum.ewm.user.UserMapper.toUserShortDto;
 import static utils.Constants.DATE_TIME_FORMATTER;
@@ -48,6 +50,10 @@ public class EventMapper {
     }
 
     public static EventFullDto toEventFullDto(Event event) {
+        String publishedOn = "";
+        if (event.getEventState().equals(PUBLISHED)) {
+            publishedOn = event.getPublishedOn().format(DATE_TIME_FORMATTER);
+        }
         return EventFullDto.builder()
                 .id(event.getId())
                 .annotation(event.getAnnotation())
@@ -63,7 +69,7 @@ public class EventMapper {
                         .build())
                 .paid(event.getPaid())
                 .participantLimit(event.getParticipantLimit())
-                .publishedOn(event.getPublishedOn().format(DATE_TIME_FORMATTER))
+                .publishedOn(publishedOn)
                 .requestModeration(event.getRequestModeration())
                 .eventState(event.getEventState())
                 .title(event.getTitle())
@@ -71,7 +77,7 @@ public class EventMapper {
                 .build();
     }
 
-    public static Event fromNewEventDto(NewEventDto newEventDto, Category category) {
+    public static Event fromNewEventDto(NewEventDto newEventDto, Category category, User userId) {
         Event event = new Event();
         event.setAnnotation(newEventDto.getAnnotation());
         event.setCategory(category);
@@ -84,6 +90,8 @@ public class EventMapper {
         event.setRequestModeration(newEventDto.getRequestModeration());
         event.setTitle(newEventDto.getTitle());
         event.setEventState(PENDING);
+        event.setCreatedOn(LocalDateTime.now());
+        event.setInitiator(userId);
         return event;
     }
 }

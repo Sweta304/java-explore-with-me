@@ -44,20 +44,20 @@ public class AdminEventsController {
         return eventsService.getAllEventsByFilter(users, states, categories, rangeStart, rangeEnd, from, size);
     }
 
-    @PutMapping("{eventId}")
+    @PutMapping("/{eventId}")
     public EventFullDto editEvent(@PathVariable Long eventId,
                                   @RequestBody AdminUpdateEventRequest event) throws EventNotFoundException {
         log.info("Админ редактирует данные события {}", eventId);
         return eventsService.editEventByAdmin(eventId, event);
     }
 
-    @PatchMapping("{eventId}/publish")
+    @PatchMapping("/{eventId}/publish")
     public EventFullDto publishEvent(@PathVariable Long eventId) throws EventNotFoundException, IncorrectEventParamsException {
         log.info("Админ публикует событие {}", eventId);
         return eventsService.publishEvent(eventId);
     }
 
-    @PatchMapping("{eventId}/reject")
+    @PatchMapping("/{eventId}/reject")
     public EventFullDto rejectEvent(@PathVariable Long eventId) throws EventNotFoundException, IncorrectEventParamsException {
         log.info("Админ отклоняет публикацию события{}", eventId);
         return eventsService.rejectEvent(eventId);
