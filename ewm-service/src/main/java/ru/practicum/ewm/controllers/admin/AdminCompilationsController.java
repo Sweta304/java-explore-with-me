@@ -50,7 +50,7 @@ public class AdminCompilationsController {
     public void addEventToCompilation(@PathVariable @Positive Long compId,
                                       @PathVariable @Positive Long eventId) throws CompilationNotFoundException,
             EventNotFoundException, ForbiddenException {
-        log.info("Админ удаляет событие {} из подборки {}", eventId, compId);
+        log.info("Админ добавляет событие {} в подборку {}", eventId, compId);
         compilationService.addEventToCompilation(compId, eventId);
     }
 
@@ -62,7 +62,7 @@ public class AdminCompilationsController {
 
     @PatchMapping("/{compId}/pin")
     public void pinCompilation(@PathVariable @Positive Long compId) throws CompilationNotFoundException {
-        log.info("Админ открепляет подборку {} с главной страницы", compId);
+        log.info("Админ добавляет подборку {} на главную страницу", compId);
         compilationService.pinCompilation(compId);
     }
 }

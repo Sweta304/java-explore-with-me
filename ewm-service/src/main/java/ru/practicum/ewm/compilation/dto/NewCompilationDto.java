@@ -5,8 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.jackson.Jacksonized;
-import ru.practicum.ewm.event.model.Event;
 
+import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Objects;
 
@@ -16,8 +16,9 @@ import java.util.Objects;
 @Builder
 @Jacksonized
 public class NewCompilationDto {
-    private List<Event> events;
+    private List<Long> events;
     boolean pinned;
+    @NotNull
     String title;
 
     @Override

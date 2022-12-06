@@ -26,13 +26,13 @@ public class AdminCategoryController {
     }
 
     @PostMapping
-    public CategoryDto addCategory(@RequestBody @Valid NewCategoryDto newCategoryDto) {
+    public CategoryDto addCategory(@RequestBody @Valid NewCategoryDto newCategoryDto) throws ConflictException {
         log.info("Админ создает новую категорию {}", newCategoryDto.getName());
         return categoryService.addCategory(newCategoryDto);
     }
 
     @PatchMapping
-    public CategoryDto changeCategory(@RequestBody @Valid CategoryDto categoryDto) throws CategoryNotFoundException {
+    public CategoryDto changeCategory(@RequestBody @Valid CategoryDto categoryDto) throws CategoryNotFoundException, ConflictException {
         log.info("Админ редактирует категорию с id {}", categoryDto.getId());
         return categoryService.changeCategory(categoryDto);
     }

@@ -17,6 +17,7 @@ import ru.practicum.ewm.event.EventMapper;
 import ru.practicum.ewm.event.dto.*;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.repository.EventJpaRepository;
+import ru.practicum.ewm.event.repository.QPredicates;
 import ru.practicum.ewm.exceptions.*;
 import ru.practicum.ewm.request.RequestMapper;
 import ru.practicum.ewm.request.dto.ParticipationRequestDto;
@@ -25,15 +26,13 @@ import ru.practicum.ewm.request.repository.RequestsJpaRepository;
 import ru.practicum.ewm.statistics.dto.EndpointHit;
 import ru.practicum.ewm.user.model.User;
 import ru.practicum.ewm.user.repository.UserJpaRepository;
-import utils.MyPageable;
-import utils.QPredicates;
+import ru.practicum.ewm.utils.MyPageable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static ru.practicum.ewm.category.CategoryMapper.fromCategoryDto;
 import static ru.practicum.ewm.dictionary.EventSorting.EVENT_DATE;
 import static ru.practicum.ewm.dictionary.EventSorting.VIEWS;
 import static ru.practicum.ewm.dictionary.EventStates.*;
@@ -43,8 +42,8 @@ import static ru.practicum.ewm.event.EventMapper.fromNewEventDto;
 import static ru.practicum.ewm.event.EventMapper.toEventFullDto;
 import static ru.practicum.ewm.event.model.QEvent.event;
 import static ru.practicum.ewm.request.RequestMapper.toParticipationRequestDto;
-import static utils.Constants.DATE_TIME_FORMATTER;
-import static utils.Constants.SORT_BY_ID;
+import static ru.practicum.ewm.utils.Constants.DATE_TIME_FORMATTER;
+import static ru.practicum.ewm.utils.Constants.SORT_BY_ID;
 
 
 @Service
@@ -101,13 +100,20 @@ public class EventsServiceImpl implements EventsService {
             }
         }
 
-        Predicate predicate = QPredicates.builder()
+        QPredicates qPredicates = QPredicates.builder();
+
+        Predicate predicate = qPredicates
                 .add(users, event.initiator.id::in)
-                .add(eventStates, event.eventState::in)
                 .add(categories, event.category.id::in)
                 .add(rangeStartFilter, event.eventDate::after)
                 .add(rangeEndFilter, event.eventDate::before)
                 .buildAnd();
+
+        if (!eventStates.isEmpty()) {
+            predicate = qPredicates
+                    .add(eventStates, event.eventState::in)
+                    .buildAnd();
+        }
 
         Page<Event> requestPage = eventJpaRepository.findAll(predicate, page);
 
@@ -117,27 +123,37 @@ public class EventsServiceImpl implements EventsService {
                 .collect(Collectors.toList());
     }
 
-    public EventFullDto editEventByAdmin(Long eventId, AdminUpdateEventRequest updatedEvent) throws EventNotFoundException {
+    public EventFullDto editEventByAdmin(Long eventId, AdminUpdateEventRequest updatedEvent) throws EventNotFoundException, CategoryNotFoundException {
         Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Событие не найдено в таблице"));
+        Category category = categoryJpaRepository.findById(updatedEvent.getCategory()).orElseThrow(() -> new CategoryNotFoundException("Невозможно корректировать событие", "Указанная категория не существует"));
+
 
         if (updatedEvent.getAnnotation() != null) {
             event.setAnnotation(updatedEvent.getAnnotation());
-        } else if (updatedEvent.getCategory() != null) {
-            event.setCategory(fromCategoryDto(updatedEvent.getCategory()));
-        } else if (updatedEvent.getDescription() != null) {
+        }
+        if (updatedEvent.getCategory() != null) {
+            event.setCategory(category);
+        }
+        if (updatedEvent.getDescription() != null) {
             event.setDescription(updatedEvent.getDescription());
-        } else if (updatedEvent.getEventDate() != null) {
+        }
+        if (updatedEvent.getEventDate() != null) {
             event.setEventDate(LocalDateTime.parse(updatedEvent.getEventDate(), DATE_TIME_FORMATTER));
-        } else if (updatedEvent.getLocation() != null) {
+        }
+        if (updatedEvent.getLocation() != null) {
             event.setLon(updatedEvent.getLocation().getLon());
             event.setLat(updatedEvent.getLocation().getLat());
-        } else if (updatedEvent.getPaid() != null) {
+        }
+        if (updatedEvent.getPaid() != null) {
             event.setPaid(updatedEvent.getPaid());
-        } else if (updatedEvent.getParticipantLimit() != null) {
+        }
+        if (updatedEvent.getParticipantLimit() != null) {
             event.setParticipantLimit(updatedEvent.getParticipantLimit());
-        } else if (updatedEvent.getRequestModeration() != null) {
+        }
+        if (updatedEvent.getRequestModeration() != null) {
             event.setRequestModeration(updatedEvent.getRequestModeration());
-        } else if (updatedEvent.getTitle() != null) {
+        }
+        if (updatedEvent.getTitle() != null) {
             event.setTitle(updatedEvent.getTitle());
         }
 
@@ -153,17 +169,17 @@ public class EventsServiceImpl implements EventsService {
         } else {
             throw new IncorrectEventParamsException("Невозможно опубликовать событие", "До начала события мене часа, либо событие уже было опубликовано ранее");
         }
-        return toEventFullDto(event);
+        return toEventFullDto(eventJpaRepository.save(event));
     }
 
     public EventFullDto rejectEvent(Long eventId) throws EventNotFoundException, IncorrectEventParamsException {
         Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Событие не найдено в таблице"));
-        if (event.getEventState().equals(PUBLISHED)) {
+        if (!event.getEventState().equals(PUBLISHED)) {
             event.setEventState(CANCELED);
         } else {
             throw new IncorrectEventParamsException("Невозможно отклонить публикацию события", "Событие уже было опубликовано");
         }
-        return toEventFullDto(event);
+        return toEventFullDto(eventJpaRepository.save(event));
     }
 
     public List<EventShortDto> getAllPublicEventsByFilter(String text,
@@ -182,7 +198,7 @@ public class EventsServiceImpl implements EventsService {
         }
         Sort eventSort;
         if (EventSorting.valueOf(sort).equals(EVENT_DATE)) {
-            eventSort = Sort.by(Sort.Direction.DESC, "event_date");
+            eventSort = Sort.by(Sort.Direction.DESC, "eventDate");
         } else if (EventSorting.valueOf(sort).equals(VIEWS)) {
             eventSort = Sort.by(Sort.Direction.DESC, "views");
         } else {
@@ -195,16 +211,25 @@ public class EventsServiceImpl implements EventsService {
             rangeEndFilter = LocalDateTime.parse(rangeEnd, DATE_TIME_FORMATTER);
         }
 
-        Predicate predicate = QPredicates.builder()
+        QPredicates qPredicates = QPredicates.builder();
+
+        qPredicates
                 .add(PUBLISHED, event.eventState::eq)
+                .add(categories, event.category.id::in)
                 .add(text, event.annotation::containsIgnoreCase)
-//                .add(text, event.description::containsIgnoreCase)
-//                .add(categories, event.category.id::in)
-//                .add(paid, event.paid::eq)
-//                .add(rangeStartFilter, event.eventDate::after)
-//                .add(rangeEndFilter, event.eventDate::before)
-//                .add(onlyAvailable, (event.participantLimit.gt(event.confirmedRequests))::eq)
+                .add(paid, event.paid::eq)
+                .add(rangeStartFilter, event.eventDate::after)
+                .add(rangeEndFilter, event.eventDate::before)
                 .buildAnd();
+
+        if (onlyAvailable != null && onlyAvailable) {
+            qPredicates
+                    .add(event.confirmedRequests, event.participantLimit::gt)
+                    .buildAnd();
+        }
+
+        Predicate predicate = qPredicates.buildAnd();
+
         Page<Event> requestPage = eventJpaRepository.findAll(predicate, page);
         writeStats(ip, uri);
         return requestPage.getContent()
@@ -216,6 +241,8 @@ public class EventsServiceImpl implements EventsService {
     public EventFullDto getEvent(Long eventId, String ip, String uri) throws EventNotFoundException {
         Event event = eventJpaRepository.findEventByIdAndEventState(eventId, PUBLISHED).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Не найдено опубликованное событие с заданным id"));
         writeStats(ip, uri);
+        int views = getStats(List.of(uri), false);
+        event.setViews(views);
         return toEventFullDto(event);
     }
 
@@ -228,35 +255,43 @@ public class EventsServiceImpl implements EventsService {
                 .collect(Collectors.toList());
     }
 
-    public EventFullDto updateEventByUser(Long userId, UpdateEventRequest updatedEvent) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
+    public EventFullDto updateEventByUser(Long userId, UpdateEventRequest updatedEvent) throws UserNotFoundException, EventNotFoundException, ForbiddenException, CategoryNotFoundException {
         checkUser(userId);
         checkEvent(updatedEvent.getEventId());
         Event event = eventJpaRepository.findById(updatedEvent.getEventId()).get();
         checkInitiator(userId, updatedEvent.getEventId());
+        Category category = categoryJpaRepository.findById(updatedEvent.getCategory()).orElseThrow(() -> new CategoryNotFoundException("Невозможно изменение события", "Указанная категория не существует"));
 
-        if (event.getEventState().equals(CANCELED) || event.getRequestModeration()) {
+
+        if (event.getEventState().equals(CANCELED) || event.getEventState().equals(PENDING)) {
             if (LocalDateTime.parse(updatedEvent.getEventDate(), DATE_TIME_FORMATTER).isBefore(LocalDateTime.now().plusHours(2))) {
                 throw new ForbiddenException("Невозможно редактировать событие", "Начало события запланировано менее чем через 2 часа");
             }
 
             if (updatedEvent.getAnnotation() != null) {
                 event.setAnnotation(updatedEvent.getAnnotation());
-            } else if (updatedEvent.getCategory() != null) {
-                event.setCategory(fromCategoryDto(updatedEvent.getCategory()));
-            } else if (updatedEvent.getDescription() != null) {
+            }
+            if (updatedEvent.getCategory() != null) {
+                event.setCategory(category);
+            }
+            if (updatedEvent.getDescription() != null) {
                 event.setDescription(updatedEvent.getDescription());
-            } else if (updatedEvent.getEventDate() != null) {
+            }
+            if (updatedEvent.getEventDate() != null) {
                 event.setEventDate(LocalDateTime.parse(updatedEvent.getEventDate(), DATE_TIME_FORMATTER));
-            } else if (updatedEvent.getPaid() != null) {
+            }
+            if (updatedEvent.getPaid() != null) {
                 event.setPaid(updatedEvent.getPaid());
-            } else if (updatedEvent.getParticipantLimit() != null) {
+            }
+            if (updatedEvent.getParticipantLimit() != null) {
                 event.setParticipantLimit(updatedEvent.getParticipantLimit());
-            } else if (event.getEventState().equals(CANCELED)) {
-                event.setRequestModeration(true);
-            } else if (updatedEvent.getTitle() != null) {
+            }
+            if (event.getEventState().equals(CANCELED)) {
+                event.setEventState(PENDING);
+            }
+            if (updatedEvent.getTitle() != null) {
                 event.setTitle(updatedEvent.getTitle());
             }
-            event.setEventState(PENDING);
         } else {
             throw new ForbiddenException("Невозможно редактировать событие", "Не выполнены условия для редактирования");
         }
@@ -311,7 +346,7 @@ public class EventsServiceImpl implements EventsService {
             throw new ForbiddenException("Запрещено редактировать запрос", "Событие запроса не принадлежит текущему пользователю");
         }
         request.setStatus(CONFIRMED);
-        return toParticipationRequestDto(request);
+        return toParticipationRequestDto(requestsJpaRepository.save(request));
     }
 
     public ParticipationRequestDto rejectEventRequest(Long userId, Long eventId, Long reqId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
@@ -323,7 +358,7 @@ public class EventsServiceImpl implements EventsService {
             throw new ForbiddenException("Запрещено редактировать запрос", "Событие запроса не принадлежит текущему пользователю");
         }
         request.setStatus(REJECTED);
-        return toParticipationRequestDto(request);
+        return toParticipationRequestDto(requestsJpaRepository.save(request));
     }
 
     private void checkUser(Long id) throws UserNotFoundException {
@@ -351,5 +386,9 @@ public class EventsServiceImpl implements EventsService {
         endpointHit.setUri(uri);
         endpointHit.setTimestamp(LocalDateTime.now());
         hitClient.addStatInfo(endpointHit);
+    }
+
+    private int getStats(List<String> uris, Boolean unique) {
+        return statsClient.getViews(LocalDateTime.now().minusYears(5).format(DATE_TIME_FORMATTER), LocalDateTime.now().plusYears(5).format(DATE_TIME_FORMATTER), uris, unique);
     }
 }

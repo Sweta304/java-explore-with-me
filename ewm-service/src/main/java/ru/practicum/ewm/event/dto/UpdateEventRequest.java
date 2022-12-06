@@ -5,8 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.jackson.Jacksonized;
-import ru.practicum.ewm.category.dto.CategoryDto;
 
+import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
 @Getter
@@ -16,9 +16,10 @@ import java.util.Objects;
 @Jacksonized
 public class UpdateEventRequest {
     private String annotation;
-    private CategoryDto category;
+    private Long category;
     private String description;
     private String eventDate;
+    @NotNull
     private Long eventId;
     private Boolean paid;
     private Integer participantLimit;

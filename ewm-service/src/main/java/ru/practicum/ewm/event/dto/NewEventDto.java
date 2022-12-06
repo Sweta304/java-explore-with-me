@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.jackson.Jacksonized;
 
+import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
 @Getter
@@ -14,14 +15,20 @@ import java.util.Objects;
 @Builder
 @Jacksonized
 public class NewEventDto {
+    @NotNull
     private String annotation;
+    @NotNull
     private Long category;
+    @NotNull
     private String description;
+    @NotNull
     private String eventDate;
+    @NotNull
     private Location location;
     private Boolean paid;
     private Integer participantLimit;
     private Boolean requestModeration;
+    @NotNull
     private String title;
 
 

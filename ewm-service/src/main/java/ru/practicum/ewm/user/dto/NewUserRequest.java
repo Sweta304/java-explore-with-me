@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.jackson.Jacksonized;
 
+import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
 @Getter
@@ -14,7 +15,9 @@ import java.util.Objects;
 @Builder
 @Jacksonized
 public class NewUserRequest {
+    @NotNull
     private String name;
+    @NotNull
     private String email;
 
     public static boolean validate(NewUserRequest user) {

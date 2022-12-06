@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.event.dto.AdminUpdateEventRequest;
 import ru.practicum.ewm.event.dto.EventFullDto;
 import ru.practicum.ewm.event.service.EventsService;
+import ru.practicum.ewm.exceptions.CategoryNotFoundException;
 import ru.practicum.ewm.exceptions.EventNotFoundException;
 import ru.practicum.ewm.exceptions.IncorrectEventParamsException;
 import ru.practicum.ewm.exceptions.IncorrectEventStateException;
@@ -46,7 +47,7 @@ public class AdminEventsController {
 
     @PutMapping("/{eventId}")
     public EventFullDto editEvent(@PathVariable Long eventId,
-                                  @RequestBody AdminUpdateEventRequest event) throws EventNotFoundException {
+                                  @RequestBody AdminUpdateEventRequest event) throws EventNotFoundException, CategoryNotFoundException {
         log.info("Админ редактирует данные события {}", eventId);
         return eventsService.editEventByAdmin(eventId, event);
     }

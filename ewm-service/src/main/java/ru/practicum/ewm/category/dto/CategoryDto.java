@@ -1,8 +1,12 @@
 package ru.practicum.ewm.category.dto;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.jackson.Jacksonized;
 
+import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
 @Getter
@@ -12,6 +16,7 @@ import java.util.Objects;
 @Jacksonized
 public class CategoryDto {
     private Long id;
+    @NotNull
     private String name;
 
     @Override

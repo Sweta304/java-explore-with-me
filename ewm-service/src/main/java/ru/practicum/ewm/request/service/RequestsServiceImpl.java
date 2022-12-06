@@ -80,14 +80,15 @@ public class RequestsServiceImpl implements RequestsService {
         request.setEvent(event);
         request.setCreated(LocalDateTime.now());
         event.setConfirmedRequests(event.getConfirmedRequests() + 1);
-        return toParticipationRequestDto(requestsJpaRepository.save(request));
+        request = requestsJpaRepository.save(request);
+        return toParticipationRequestDto(request);
     }
 
     public ParticipationRequestDto cancelRequest(Long userId, Long requestId) throws UserNotFoundException, EventNotFoundException {
         checkUser(userId);
         Request request = requestsJpaRepository.findById(requestId).orElseThrow(() -> new EventNotFoundException("Запроса не существует", "Запрос не найден в списке запросов"));
         Event event = request.getEvent();
-        request.setStatus(RequestStates.REJECTED);
+        request.setStatus(RequestStates.CANCELED);
         event.setConfirmedRequests(event.getConfirmedRequests() - 1);
         return toParticipationRequestDto(request);
     }

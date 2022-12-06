@@ -14,14 +14,16 @@ import ru.practicum.ewm.event.repository.EventJpaRepository;
 import ru.practicum.ewm.exceptions.CompilationNotFoundException;
 import ru.practicum.ewm.exceptions.EventNotFoundException;
 import ru.practicum.ewm.exceptions.ForbiddenException;
-import utils.MyPageable;
+import ru.practicum.ewm.utils.MyPageable;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.compilation.CompilationMapper.fromNewCompilationDto;
 import static ru.practicum.ewm.compilation.CompilationMapper.toCompilationDto;
-import static utils.Constants.SORT_BY_ID;
+import static ru.practicum.ewm.utils.Constants.SORT_BY_ID;
 
 
 @Service
@@ -38,8 +40,11 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     public CompilationDto addCompilation(NewCompilationDto newCompilationDto) {
-        Compilation compilation = fromNewCompilationDto(newCompilationDto);
-        return toCompilationDto(compilationJpaRepository.save(compilation));
+        Set<Event> events = new HashSet<>();
+        newCompilationDto.getEvents().forEach(x -> events.add(eventJpaRepository.findById(x).get()));
+        Compilation compilation = fromNewCompilationDto(newCompilationDto, events);
+        compilation = compilationJpaRepository.save(compilation);
+        return toCompilationDto(compilation);
     }
 
     public void deleteCompilation(Long compId) throws CompilationNotFoundException {
@@ -50,7 +55,7 @@ public class CompilationServiceImpl implements CompilationService {
 
     public void deleteEventFromCompilation(Long compId, Long eventId) throws CompilationNotFoundException, EventNotFoundException, ForbiddenException {
         Compilation compilation = compilationJpaRepository.findById(compId).orElseThrow(() -> new CompilationNotFoundException("подборки с id " + compId + " не существует", "в списке подборок не существует запрошенной подборки"));
-        Event event = eventJpaRepository.findById(compId).orElseThrow(() -> new EventNotFoundException("события с id " + compId + " не существует", "в списке событий не существует запрошенного события"));
+        Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("события с id " + eventId + " не существует", "в списке событий не существует запрошенного события"));
         if (compilation.getEvents().contains(event)) {
             compilation.getEvents().remove(event);
             log.info("удалено событие {} из подборки {}", eventId, compId);
@@ -58,11 +63,12 @@ public class CompilationServiceImpl implements CompilationService {
             log.info("неудачная попытка удалить событие {} из подборки {}", eventId, compId);
             throw new ForbiddenException("Невозможно удалить событие", "Событие " + eventId + " не найдено в подборке " + compId);
         }
+        compilationJpaRepository.save(compilation);
     }
 
     public void addEventToCompilation(Long compId, Long eventId) throws CompilationNotFoundException, EventNotFoundException, ForbiddenException {
         Compilation compilation = compilationJpaRepository.findById(compId).orElseThrow(() -> new CompilationNotFoundException("подборки с id " + compId + " не существует", "в списке подборок не существует запрошенной подборки"));
-        Event event = eventJpaRepository.findById(compId).orElseThrow(() -> new EventNotFoundException("события с id " + compId + " не существует", "в списке событий не существует запрошенного события"));
+        Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("события с id " + eventId + " не существует", "в списке событий не существует запрошенного события"));
         if (compilationJpaRepository.findAllByEventsContaining(event).isEmpty()) {
             compilation.getEvents().add(event);
             log.info("добавлено событие {} в подборку {}", eventId, compId);
@@ -70,16 +76,19 @@ public class CompilationServiceImpl implements CompilationService {
             log.info("неудачная попытка добавить событие {} в подборку {}", eventId, compId);
             throw new ForbiddenException("Невозможно добавить событие", "Событие " + eventId + " участвует у другой подборке");
         }
+        compilationJpaRepository.save(compilation);
     }
 
     public void unpinCompilation(Long compId) throws CompilationNotFoundException {
         Compilation compilation = compilationJpaRepository.findById(compId).orElseThrow(() -> new CompilationNotFoundException("подборки с id " + compId + " не существует", "в списке подборок не существует запрошенной подборки"));
         compilation.setPinned(false);
+        compilationJpaRepository.save(compilation);
     }
 
     public void pinCompilation(Long compId) throws CompilationNotFoundException {
         Compilation compilation = compilationJpaRepository.findById(compId).orElseThrow(() -> new CompilationNotFoundException("подборки с id " + compId + " не существует", "в списке подборок не существует запрошенной подборки"));
         compilation.setPinned(true);
+        compilationJpaRepository.save(compilation);
     }
 
     public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {

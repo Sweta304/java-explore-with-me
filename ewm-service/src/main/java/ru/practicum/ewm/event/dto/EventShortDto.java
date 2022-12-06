@@ -8,6 +8,7 @@ import lombok.extern.jackson.Jacksonized;
 import ru.practicum.ewm.category.dto.CategoryDto;
 import ru.practicum.ewm.user.dto.UserShortDto;
 
+import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
 @Getter
@@ -16,13 +17,19 @@ import java.util.Objects;
 @Builder
 @Jacksonized
 public class EventShortDto {
-    private Long id;
+    @NotNull
     private String annotation;
+    @NotNull
     private CategoryDto category;
     private Integer confirmedRequests;
+    @NotNull
     private String eventDate;
+    private Long id;
+    @NotNull
     private UserShortDto initiator;
+    @NotNull
     private Boolean paid;
+    @NotNull
     private String title;
     private Integer views;
 

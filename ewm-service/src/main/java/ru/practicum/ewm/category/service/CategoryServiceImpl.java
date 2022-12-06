@@ -12,14 +12,14 @@ import ru.practicum.ewm.category.repository.CategoryJpaRepository;
 import ru.practicum.ewm.event.repository.EventJpaRepository;
 import ru.practicum.ewm.exceptions.CategoryNotFoundException;
 import ru.practicum.ewm.exceptions.ConflictException;
-import utils.MyPageable;
+import ru.practicum.ewm.utils.MyPageable;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.category.CategoryMapper.fromNewCategoryDto;
 import static ru.practicum.ewm.category.CategoryMapper.toCategoryDto;
-import static utils.Constants.SORT_BY_ID;
+import static ru.practicum.ewm.utils.Constants.SORT_BY_ID;
 
 
 @Service
@@ -35,17 +35,19 @@ public class CategoryServiceImpl implements CategoryService {
         this.eventJpaRepository = eventJpaRepository;
     }
 
-    public CategoryDto changeCategory(CategoryDto categoryDto) throws CategoryNotFoundException {
+    public CategoryDto changeCategory(CategoryDto categoryDto) throws CategoryNotFoundException, ConflictException {
         Long id = categoryDto.getId();
         String name = categoryDto.getName();
         Category category = categoryJpaRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException("Категории с id " + id + " не существует", "Категория не найдена в таблице"));
+        checkUniqueCategoryName(name);
         category.setCategoryName(name);
         log.info("Имя категории {} изменено на {}", id, name);
-        return toCategoryDto(category);
+        return toCategoryDto(categoryJpaRepository.save(category));
     }
 
-    public CategoryDto addCategory(NewCategoryDto newCategoryDto) {
+    public CategoryDto addCategory(NewCategoryDto newCategoryDto) throws ConflictException {
         Category category = fromNewCategoryDto(newCategoryDto);
+        checkUniqueCategoryName(newCategoryDto.getName());
         category = categoryJpaRepository.save(category);
         return toCategoryDto(category);
     }
@@ -70,6 +72,12 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDto findById(Long id) throws CategoryNotFoundException {
         Category category = categoryJpaRepository.findById(id).orElseThrow(() -> new CategoryNotFoundException("Категория не найдена", "Категории с id " + id + "не существует"));
         return toCategoryDto(category);
+    }
+
+    private void checkUniqueCategoryName(String name) throws ConflictException {
+        if (categoryJpaRepository.findByCategoryName(name) != null) {
+            throw new ConflictException("Некорректное имя категории", "Категория с таким именем уже существует");
+        }
     }
 
 }

@@ -6,7 +6,7 @@ import ru.practicum.ewm.request.model.Request;
 
 import java.time.LocalDateTime;
 
-import static utils.Constants.DATE_TIME_FORMATTER;
+import static ru.practicum.ewm.utils.Constants.DATE_TIME_FORMATTER;
 
 public class RequestMapper {
 
@@ -15,6 +15,7 @@ public class RequestMapper {
                 .builder()
                 .created(request.getCreated().format(DATE_TIME_FORMATTER))
                 .event(request.getEvent().getId())
+                .id(request.getId())
                 .requester(request.getRequester().getId())
                 .status(request.getStatus())
                 .build();

@@ -11,9 +11,9 @@ import java.util.List;
 
 public interface CategoryService {
 
-    CategoryDto changeCategory(CategoryDto categoryDto) throws CategoryNotFoundException;
+    CategoryDto changeCategory(CategoryDto categoryDto) throws CategoryNotFoundException, ConflictException;
 
-    CategoryDto addCategory(NewCategoryDto newCategoryDto);
+    CategoryDto addCategory(NewCategoryDto newCategoryDto) throws ConflictException;
 
     void deleteCategory(Long id) throws CategoryNotFoundException, ConflictException;
 

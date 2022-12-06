@@ -41,7 +41,7 @@ public class PrivateEventsController {
     }
 
     @PatchMapping
-    public EventFullDto updateEventByUser(@PathVariable @Positive Long userId, @RequestBody @Valid UpdateEventRequest updateEventRequest) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
+    public EventFullDto updateEventByUser(@PathVariable @Positive Long userId, @RequestBody @Valid UpdateEventRequest updateEventRequest) throws UserNotFoundException, EventNotFoundException, ForbiddenException, CategoryNotFoundException {
         log.info("Внесение изменений в событие с id {}", updateEventRequest.getEventId());
         return eventsService.updateEventByUser(userId, updateEventRequest);
     }

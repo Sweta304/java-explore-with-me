@@ -1,4 +1,4 @@
-package utils;
+package ru.practicum.ewm.event.repository;
 
 import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Predicate;

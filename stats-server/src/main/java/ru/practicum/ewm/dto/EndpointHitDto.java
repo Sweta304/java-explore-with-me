@@ -1,19 +1,20 @@
-package ru.practicum.ewm.statistics.dto;
+package ru.practicum.ewm.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.jackson.Jacksonized;
 
 import java.time.LocalDateTime;
 
-
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
 @Builder
 @Jacksonized
-public class EndpointHit {
+public class EndpointHitDto {
     private Long id;
     private String app;
     private String uri;

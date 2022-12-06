@@ -11,4 +11,6 @@ import ru.practicum.ewm.category.model.Category;
 public interface CategoryJpaRepository extends JpaRepository<Category, Long>, QuerydslPredicateExecutor<Category> {
 
     Page<Category> findAll(Pageable page);
+
+    Category findByCategoryName(String name);
 }

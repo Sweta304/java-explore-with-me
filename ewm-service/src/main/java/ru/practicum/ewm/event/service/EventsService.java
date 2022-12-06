@@ -19,7 +19,7 @@ public interface EventsService {
                                             Integer from,
                                             Integer size) throws IncorrectEventStateException;
 
-    EventFullDto editEventByAdmin(Long eventId, AdminUpdateEventRequest event) throws EventNotFoundException;
+    EventFullDto editEventByAdmin(Long eventId, AdminUpdateEventRequest event) throws EventNotFoundException, CategoryNotFoundException;
 
     EventFullDto publishEvent(Long eventId) throws EventNotFoundException, IncorrectEventParamsException;
 
@@ -41,7 +41,7 @@ public interface EventsService {
 
     List<EventShortDto> getAllEventsByUserId(Long userId, Integer from, Integer size) throws UserNotFoundException;
 
-    EventFullDto updateEventByUser(Long userId, UpdateEventRequest updateEventRequest) throws UserNotFoundException, EventNotFoundException, ForbiddenException;
+    EventFullDto updateEventByUser(Long userId, UpdateEventRequest updateEventRequest) throws UserNotFoundException, EventNotFoundException, ForbiddenException, CategoryNotFoundException;
 
     EventFullDto addEvent(Long userId, NewEventDto newEventDto) throws UserNotFoundException, CategoryNotFoundException;
 

@@ -3,6 +3,7 @@ package ru.practicum.ewm.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.practicum.ewm.dto.EndpointHitDto;
 import ru.practicum.ewm.dto.ViewStats;
 import ru.practicum.ewm.model.EndpointHit;
 import ru.practicum.ewm.repository.StatsJpaRepository;
@@ -12,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static ru.practicum.ewm.EndpointMapper.fromEndPointHitDto;
 import static ru.practicum.ewm.utils.Constants.DATE_TIME_FORMATTER;
 
 
@@ -26,7 +28,8 @@ public class StatsServiceImpl implements StatsService {
         this.statsJpaRepository = statsJpaRepository;
     }
 
-    public void addStatInfo(EndpointHit endpointHit) {
+    public void addStatInfo(EndpointHitDto endpointHitDto) {
+        EndpointHit endpointHit = fromEndPointHitDto(endpointHitDto);
         statsJpaRepository.save(endpointHit);
     }
 

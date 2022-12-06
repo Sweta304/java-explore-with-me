@@ -17,7 +17,7 @@ import static ru.practicum.ewm.dictionary.EventStates.PENDING;
 import static ru.practicum.ewm.dictionary.EventStates.PUBLISHED;
 import static ru.practicum.ewm.user.UserMapper.fromUserShortDto;
 import static ru.practicum.ewm.user.UserMapper.toUserShortDto;
-import static utils.Constants.DATE_TIME_FORMATTER;
+import static ru.practicum.ewm.utils.Constants.DATE_TIME_FORMATTER;
 
 public class EventMapper {
 
@@ -71,7 +71,7 @@ public class EventMapper {
                 .participantLimit(event.getParticipantLimit())
                 .publishedOn(publishedOn)
                 .requestModeration(event.getRequestModeration())
-                .eventState(event.getEventState())
+                .state(event.getEventState())
                 .title(event.getTitle())
                 .views(event.getViews())
                 .build();
@@ -92,6 +92,7 @@ public class EventMapper {
         event.setEventState(PENDING);
         event.setCreatedOn(LocalDateTime.now());
         event.setInitiator(userId);
+        event.setConfirmedRequests(0);
         return event;
     }
 }

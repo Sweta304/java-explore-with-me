@@ -3,14 +3,10 @@ package ru.practicum.ewm.controllers.admin;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.ewm.exceptions.EmailException;
-import ru.practicum.ewm.exceptions.UserAlreadyExistsException;
-import ru.practicum.ewm.exceptions.UserNotFoundException;
-import ru.practicum.ewm.exceptions.ValidationException;
+import ru.practicum.ewm.exceptions.*;
 import ru.practicum.ewm.user.dto.NewUserRequest;
 import ru.practicum.ewm.user.dto.UserDto;
 import ru.practicum.ewm.user.service.UserService;
-
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
@@ -29,7 +25,7 @@ public class AdminUserController {
     }
 
     @PostMapping
-    public UserDto addUser(@RequestBody @Valid NewUserRequest user) throws UserAlreadyExistsException, ValidationException, UserNotFoundException, EmailException {
+    public UserDto addUser(@RequestBody @Valid NewUserRequest user) throws UserAlreadyExistsException, ValidationException, UserNotFoundException, EmailException, ConflictException {
         return userService.addUser(user);
     }
 

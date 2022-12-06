@@ -22,4 +22,6 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
             "where id in (:bookerId)",
             nativeQuery = true)
     Page<User> findAllByList(List<Long> bookerId, Pageable pageable);
+
+    User findByName(String name);
 }

@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.jackson.Jacksonized;
 
+import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
 @Getter
@@ -15,7 +16,9 @@ import java.util.Objects;
 @Jacksonized
 public class UserDto {
     private Long id;
+    @NotNull
     private String name;
+    @NotNull
     private String email;
 
     @Override
