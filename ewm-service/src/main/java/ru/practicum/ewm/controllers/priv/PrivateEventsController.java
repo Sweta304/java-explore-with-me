@@ -85,4 +85,16 @@ public class PrivateEventsController {
         log.info("Отклонение запроса с id {} на участие в мероприятии с id {}", reqId, eventId);
         return eventsService.rejectEventRequest(userId, eventId, reqId);
     }
+
+    @PatchMapping("/{eventId}/like")
+    public EventFullDto addLike(@PathVariable @Positive Long userId, @PathVariable @Positive Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
+        log.info("Пользователь с id {} ставит лайк событию с id {}", userId, eventId);
+        return eventsService.addLike(userId, eventId);
+    }
+
+    @PatchMapping("/{eventId}/dislike")
+    public EventFullDto addDislike(@PathVariable @Positive Long userId, @PathVariable @Positive Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
+        log.info("Пользователь с id {} ставит дизлайк событию с id {}", userId, eventId);
+        return eventsService.addDislike(userId, eventId);
+    }
 }

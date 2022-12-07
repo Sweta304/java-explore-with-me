@@ -10,6 +10,8 @@ import ru.practicum.ewm.event.repository.EventJpaRepository;
 import ru.practicum.ewm.exceptions.EventNotFoundException;
 import ru.practicum.ewm.exceptions.ForbiddenException;
 import ru.practicum.ewm.exceptions.UserNotFoundException;
+import ru.practicum.ewm.rating.model.Rating;
+import ru.practicum.ewm.rating.repository.RatingJpaRepository;
 import ru.practicum.ewm.request.RequestMapper;
 import ru.practicum.ewm.request.dto.ParticipationRequestDto;
 import ru.practicum.ewm.request.model.Request;
@@ -33,16 +35,19 @@ public class RequestsServiceImpl implements RequestsService {
     private final UserJpaRepository userJpaRepository;
     private final CategoryJpaRepository categoryJpaRepository;
     private final RequestsJpaRepository requestsJpaRepository;
+    private final RatingJpaRepository ratingJpaRepository;
 
     @Autowired
     public RequestsServiceImpl(EventJpaRepository eventJpaRepository,
                                UserJpaRepository userJpaRepository,
                                CategoryJpaRepository categoryJpaRepository,
-                               RequestsJpaRepository requestsJpaRepository) {
+                               RequestsJpaRepository requestsJpaRepository,
+                               RatingJpaRepository ratingJpaRepository) {
         this.eventJpaRepository = eventJpaRepository;
         this.userJpaRepository = userJpaRepository;
         this.categoryJpaRepository = categoryJpaRepository;
         this.requestsJpaRepository = requestsJpaRepository;
+        this.ratingJpaRepository = ratingJpaRepository;
     }
 
     public List<ParticipationRequestDto> getAllUserRequests(Long userId) throws UserNotFoundException {
@@ -90,6 +95,10 @@ public class RequestsServiceImpl implements RequestsService {
         Event event = request.getEvent();
         request.setStatus(RequestStates.CANCELED);
         event.setConfirmedRequests(event.getConfirmedRequests() - 1);
+        removeRatingRecord(userId, event.getId());
+        updateEventRating(event.getId());
+        eventJpaRepository.save(event);
+        updateInitiatorRating(userId);
         return toParticipationRequestDto(request);
     }
 
@@ -109,5 +118,41 @@ public class RequestsServiceImpl implements RequestsService {
         if (!eventJpaRepository.findById(eventId).get().getInitiator().getId().equals(userId)) {
             throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
         }
+    }
+
+    private void removeRatingRecord(Long userId, Long eventId) {
+        Event event = eventJpaRepository.findById(eventId).get();
+        User user = userJpaRepository.findById(userId).get();
+        Rating rating = ratingJpaRepository.findByVisitorAndEvent(user, event);
+        if (rating != null) {
+            ratingJpaRepository.delete(rating);
+        }
+    }
+
+    private void updateEventRating(Long eventId) {
+        Event event = eventJpaRepository.findById(eventId).get();
+        List<Rating> ratings = ratingJpaRepository.findByEvent(event);
+        Long likes = ratings.stream()
+                .filter(Rating::getLiked)
+                .count();
+        Long dislikes = ratings.stream()
+                .filter(Rating::getDisliked)
+                .count();
+        Long rating = likes - dislikes;
+        event.setRating(rating);
+        event.setLikes(likes);
+        event.setDislikes(dislikes);
+    }
+
+    private void updateInitiatorRating(Long userId) {
+        User user = userJpaRepository.findById(userId).get();
+        List<Event> userEvents = eventJpaRepository.findByInitiatorId(user.getId());
+        Double rating = 0.0;
+        for (Event x : userEvents) {
+            rating = rating + x.getRating();
+        }
+        rating = rating / userEvents.size();
+        user.setUserRating(rating);
+        userJpaRepository.save(user);
     }
 }

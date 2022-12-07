@@ -20,6 +20,7 @@ public class UserDto {
     private String name;
     @NotNull
     private String email;
+    private Double rating;
 
     @Override
     public boolean equals(Object o) {

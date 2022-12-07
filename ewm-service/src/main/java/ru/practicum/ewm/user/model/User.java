@@ -23,4 +23,6 @@ public class User {
     private String name;
     @Column(name = "email")
     private String email;
+    @Column(name = "user_rating")
+    private Double userRating;
 }

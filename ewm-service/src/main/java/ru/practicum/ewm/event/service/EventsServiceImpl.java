@@ -19,6 +19,8 @@ import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.repository.EventJpaRepository;
 import ru.practicum.ewm.event.repository.QPredicates;
 import ru.practicum.ewm.exceptions.*;
+import ru.practicum.ewm.rating.model.Rating;
+import ru.practicum.ewm.rating.repository.RatingJpaRepository;
 import ru.practicum.ewm.request.RequestMapper;
 import ru.practicum.ewm.request.dto.ParticipationRequestDto;
 import ru.practicum.ewm.request.model.Request;
@@ -54,6 +56,7 @@ public class EventsServiceImpl implements EventsService {
     private final UserJpaRepository userJpaRepository;
     private final CategoryJpaRepository categoryJpaRepository;
     private final RequestsJpaRepository requestsJpaRepository;
+    private final RatingJpaRepository ratingJpaRepository;
     private final HitClient hitClient;
     private final StatsClient statsClient;
 
@@ -62,12 +65,14 @@ public class EventsServiceImpl implements EventsService {
                              UserJpaRepository userJpaRepository,
                              CategoryJpaRepository categoryJpaRepository,
                              RequestsJpaRepository requestsJpaRepository,
+                             RatingJpaRepository ratingJpaRepository,
                              HitClient hitClient,
                              StatsClient statsClient) {
         this.eventJpaRepository = eventJpaRepository;
         this.userJpaRepository = userJpaRepository;
         this.categoryJpaRepository = categoryJpaRepository;
         this.requestsJpaRepository = requestsJpaRepository;
+        this.ratingJpaRepository = ratingJpaRepository;
         this.hitClient = hitClient;
         this.statsClient = statsClient;
     }
@@ -346,6 +351,7 @@ public class EventsServiceImpl implements EventsService {
             throw new ForbiddenException("Запрещено редактировать запрос", "Событие запроса не принадлежит текущему пользователю");
         }
         request.setStatus(CONFIRMED);
+        createNewRatingRecord(request.getRequester().getId(), eventId);
         return toParticipationRequestDto(requestsJpaRepository.save(request));
     }
 
@@ -358,7 +364,51 @@ public class EventsServiceImpl implements EventsService {
             throw new ForbiddenException("Запрещено редактировать запрос", "Событие запроса не принадлежит текущему пользователю");
         }
         request.setStatus(REJECTED);
+        removeRatingRecord(userId, eventId);
+        updateEventRating(eventId);
         return toParticipationRequestDto(requestsJpaRepository.save(request));
+    }
+
+    public EventFullDto addLike(Long userId, Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
+        Event event = eventJpaRepository.findEventByIdAndEventState(eventId, PUBLISHED).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Не найдено опубликованное событие с заданным id"));
+        User user = userJpaRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("Пользователя не существует", "Пользователь с id " + userId + " не найден"));
+        if (event.getEventDate().isAfter(LocalDateTime.now())) {
+            throw new ForbiddenException("Нельзя поставить лайк", "Вы еще не посетили событие");
+        }
+        Rating rating = ratingJpaRepository.findByVisitorAndEvent(user, event);
+        if (rating != null) {
+            rating.setLiked(true);
+            if (rating.getDisliked()) {
+                rating.setDisliked(false);
+            }
+        } else {
+            throw new ForbiddenException("Нельзя поставить лайк", "Вы не являетесь участником события");
+        }
+        ratingJpaRepository.save(rating);
+        updateEventRating(eventId);
+        updateInitiatorRating(userId);
+        return toEventFullDto(eventJpaRepository.save(event));
+    }
+
+    public EventFullDto addDislike(Long userId, Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
+        Event event = eventJpaRepository.findEventByIdAndEventState(eventId, PUBLISHED).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Не найдено опубликованное событие с заданным id"));
+        User user = userJpaRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("Пользователя не существует", "Пользователь с id " + userId + " не найден"));
+        if (event.getEventDate().isAfter(LocalDateTime.now())) {
+            throw new ForbiddenException("Нельзя поставить дизлайк", "Вы еще не посетили событие");
+        }
+        Rating rating = ratingJpaRepository.findByVisitorAndEvent(user, event);
+        if (rating != null) {
+            rating.setDisliked(true);
+            if (rating.getLiked()) {
+                rating.setLiked(false);
+            }
+        } else {
+            throw new ForbiddenException("Нельзя поставить дизлайк", "Вы не являетесь участником события");
+        }
+        ratingJpaRepository.save(rating);
+        updateEventRating(eventId);
+        updateInitiatorRating(userId);
+        return toEventFullDto(eventJpaRepository.save(event));
     }
 
     private void checkUser(Long id) throws UserNotFoundException {
@@ -390,5 +440,52 @@ public class EventsServiceImpl implements EventsService {
 
     private int getStats(List<String> uris, Boolean unique) {
         return statsClient.getViews(LocalDateTime.now().minusYears(5).format(DATE_TIME_FORMATTER), LocalDateTime.now().plusYears(5).format(DATE_TIME_FORMATTER), uris, unique);
+    }
+
+    private void createNewRatingRecord(Long userId, Long eventId) {
+        Event event = eventJpaRepository.findById(eventId).get();
+        User user = userJpaRepository.findById(userId).get();
+        Rating rating = new Rating();
+        rating.setEvent(event);
+        rating.setVisitor(user);
+        rating.setLiked(false);
+        rating.setDisliked(false);
+        ratingJpaRepository.save(rating);
+    }
+
+    private void removeRatingRecord(Long userId, Long eventId) {
+        Event event = eventJpaRepository.findById(eventId).get();
+        User user = userJpaRepository.findById(userId).get();
+        Rating rating = ratingJpaRepository.findByVisitorAndEvent(user, event);
+        if (rating != null) {
+            ratingJpaRepository.delete(rating);
+        }
+    }
+
+    private void updateEventRating(Long eventId) {
+        Event event = eventJpaRepository.findById(eventId).get();
+        List<Rating> ratings = ratingJpaRepository.findByEvent(event);
+        Long likes = ratings.stream()
+                .filter(Rating::getLiked)
+                .count();
+        Long dislikes = ratings.stream()
+                .filter(Rating::getDisliked)
+                .count();
+        Long rating = likes - dislikes;
+        event.setRating(rating);
+        event.setLikes(likes);
+        event.setDislikes(dislikes);
+    }
+
+    private void updateInitiatorRating(Long userId) {
+        User user = userJpaRepository.findById(userId).get();
+        List<Event> userEvents = eventJpaRepository.findByInitiatorId(user.getId());
+        Double rating = 0.0;
+        for (Event x : userEvents) {
+            rating = rating + x.getRating();
+        }
+        rating = rating / userEvents.size();
+        user.setUserRating(rating);
+        userJpaRepository.save(user);
     }
 }

@@ -32,6 +32,7 @@ public class EventShortDto {
     @NotNull
     private String title;
     private Integer views;
+    private Long rating;
 
     @Override
     public boolean equals(Object o) {

@@ -41,6 +41,9 @@ public class EventFullDto {
     @NotNull
     private String title;
     private Integer views;
+    private Long rating;
+    private Long likes;
+    private Long dislikes;
 
     @Override
     public boolean equals(Object o) {

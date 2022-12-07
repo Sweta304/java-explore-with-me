@@ -14,15 +14,8 @@ public class UserMapper {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .rating(user.getUserRating())
                 .build();
-    }
-
-    public static User fromUserDto(UserDto user) {
-        return new User(
-                user.getId(),
-                user.getName(),
-                user.getEmail()
-        );
     }
 
     public static UserShortDto toUserShortDto(User user) {
