@@ -35,8 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static ru.practicum.ewm.dictionary.EventSorting.EVENT_DATE;
-import static ru.practicum.ewm.dictionary.EventSorting.VIEWS;
+import static ru.practicum.ewm.dictionary.EventSorting.*;
 import static ru.practicum.ewm.dictionary.EventStates.*;
 import static ru.practicum.ewm.dictionary.RequestStates.CONFIRMED;
 import static ru.practicum.ewm.dictionary.RequestStates.REJECTED;
@@ -206,6 +205,8 @@ public class EventsServiceImpl implements EventsService {
             eventSort = Sort.by(Sort.Direction.DESC, "eventDate");
         } else if (EventSorting.valueOf(sort).equals(VIEWS)) {
             eventSort = Sort.by(Sort.Direction.DESC, "views");
+        } else if (EventSorting.valueOf(sort).equals(RATING)) {
+            eventSort = Sort.by(Sort.Direction.DESC, "rating");
         } else {
             throw new IncorrectEventParamsException("Невозможно выполнить сортировку", "Некорректно заданы параметры сортировки");
         }
