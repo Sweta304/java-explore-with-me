@@ -224,7 +224,7 @@ public class EventsServiceImpl implements EventsService {
 
         if (onlyAvailable != null && onlyAvailable) {
             qPredicates
-                    .add(event.confirmedRequests, event.participantLimit::gt)
+                    .add(getConfirmedRequestsQty(Long.getLong(event.id.toString())), event.participantLimit::gt)
                     .buildAnd();
         }
 
