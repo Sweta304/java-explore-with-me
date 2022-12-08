@@ -3,6 +3,7 @@ package ru.practicum.ewm.request.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.stereotype.Repository;
+import ru.practicum.ewm.dictionary.RequestStates;
 import ru.practicum.ewm.request.model.Request;
 
 import java.util.List;
@@ -15,4 +16,6 @@ public interface RequestsJpaRepository extends JpaRepository<Request, Long>, Que
     List<Request> findByRequesterId(Long requesterId);
 
     Optional<Request> findByEventIdAndRequesterId(Long eventId, Long requesterId);
+
+    List<Request> findByEventIdAndStatus(Long id, RequestStates status);
 }

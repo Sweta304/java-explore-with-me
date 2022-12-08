@@ -9,11 +9,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.category.model.Category;
 import ru.practicum.ewm.category.repository.CategoryJpaRepository;
-import ru.practicum.ewm.client.HitClient;
 import ru.practicum.ewm.client.StatsClient;
 import ru.practicum.ewm.dictionary.EventSorting;
 import ru.practicum.ewm.dictionary.EventStates;
-import ru.practicum.ewm.event.EventMapper;
 import ru.practicum.ewm.event.dto.*;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.repository.EventJpaRepository;
@@ -24,6 +22,7 @@ import ru.practicum.ewm.request.dto.ParticipationRequestDto;
 import ru.practicum.ewm.request.model.Request;
 import ru.practicum.ewm.request.repository.RequestsJpaRepository;
 import ru.practicum.ewm.statistics.dto.EndpointHit;
+import ru.practicum.ewm.statistics.dto.ViewStats;
 import ru.practicum.ewm.user.model.User;
 import ru.practicum.ewm.user.repository.UserJpaRepository;
 import ru.practicum.ewm.utils.MyPageable;
@@ -38,8 +37,7 @@ import static ru.practicum.ewm.dictionary.EventSorting.VIEWS;
 import static ru.practicum.ewm.dictionary.EventStates.*;
 import static ru.practicum.ewm.dictionary.RequestStates.CONFIRMED;
 import static ru.practicum.ewm.dictionary.RequestStates.REJECTED;
-import static ru.practicum.ewm.event.EventMapper.fromNewEventDto;
-import static ru.practicum.ewm.event.EventMapper.toEventFullDto;
+import static ru.practicum.ewm.event.EventMapper.*;
 import static ru.practicum.ewm.event.model.QEvent.event;
 import static ru.practicum.ewm.request.RequestMapper.toParticipationRequestDto;
 import static ru.practicum.ewm.utils.Constants.DATE_TIME_FORMATTER;
@@ -54,7 +52,6 @@ public class EventsServiceImpl implements EventsService {
     private final UserJpaRepository userJpaRepository;
     private final CategoryJpaRepository categoryJpaRepository;
     private final RequestsJpaRepository requestsJpaRepository;
-    private final HitClient hitClient;
     private final StatsClient statsClient;
 
     @Autowired
@@ -62,16 +59,15 @@ public class EventsServiceImpl implements EventsService {
                              UserJpaRepository userJpaRepository,
                              CategoryJpaRepository categoryJpaRepository,
                              RequestsJpaRepository requestsJpaRepository,
-                             HitClient hitClient,
                              StatsClient statsClient) {
         this.eventJpaRepository = eventJpaRepository;
         this.userJpaRepository = userJpaRepository;
         this.categoryJpaRepository = categoryJpaRepository;
         this.requestsJpaRepository = requestsJpaRepository;
-        this.hitClient = hitClient;
         this.statsClient = statsClient;
     }
 
+    @Override
     public List<EventFullDto> getAllEventsByFilter(List<Long> users,
                                                    List<String> states,
                                                    List<Long> categories,
@@ -119,10 +115,11 @@ public class EventsServiceImpl implements EventsService {
 
         return requestPage.getContent()
                 .stream()
-                .map(EventMapper::toEventFullDto)
+                .map(this::createFullDto)
                 .collect(Collectors.toList());
     }
 
+    @Override
     public EventFullDto editEventByAdmin(Long eventId, AdminUpdateEventRequest updatedEvent) throws EventNotFoundException, CategoryNotFoundException {
         Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Событие не найдено в таблице"));
         Category category = categoryJpaRepository.findById(updatedEvent.getCategory()).orElseThrow(() -> new CategoryNotFoundException("Невозможно корректировать событие", "Указанная категория не существует"));
@@ -158,9 +155,10 @@ public class EventsServiceImpl implements EventsService {
         }
 
         eventJpaRepository.save(event);
-        return toEventFullDto(event);
+        return createFullDto(event);
     }
 
+    @Override
     public EventFullDto publishEvent(Long eventId) throws EventNotFoundException, IncorrectEventParamsException {
         Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Событие не найдено в таблице"));
         if (event.getEventDate().isAfter(LocalDateTime.now().minusHours(1)) && event.getEventState().equals(PENDING)) {
@@ -169,9 +167,10 @@ public class EventsServiceImpl implements EventsService {
         } else {
             throw new IncorrectEventParamsException("Невозможно опубликовать событие", "До начала события мене часа, либо событие уже было опубликовано ранее");
         }
-        return toEventFullDto(eventJpaRepository.save(event));
+        return createFullDto(eventJpaRepository.save(event));
     }
 
+    @Override
     public EventFullDto rejectEvent(Long eventId) throws EventNotFoundException, IncorrectEventParamsException {
         Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Событие не найдено в таблице"));
         if (!event.getEventState().equals(PUBLISHED)) {
@@ -179,9 +178,10 @@ public class EventsServiceImpl implements EventsService {
         } else {
             throw new IncorrectEventParamsException("Невозможно отклонить публикацию события", "Событие уже было опубликовано");
         }
-        return toEventFullDto(eventJpaRepository.save(event));
+        return createFullDto(eventJpaRepository.save(event));
     }
 
+    @Override
     public List<EventShortDto> getAllPublicEventsByFilter(String text,
                                                           List<Long> categories,
                                                           Boolean paid,
@@ -234,32 +234,36 @@ public class EventsServiceImpl implements EventsService {
         writeStats(ip, uri);
         return requestPage.getContent()
                 .stream()
-                .map(EventMapper::toEventShortDto)
+                .map(this::createShortDto)
                 .collect(Collectors.toList());
     }
 
+    @Override
     public EventFullDto getEvent(Long eventId, String ip, String uri) throws EventNotFoundException {
         Event event = eventJpaRepository.findEventByIdAndEventState(eventId, PUBLISHED).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Не найдено опубликованное событие с заданным id"));
         writeStats(ip, uri);
         int views = getStats(List.of(uri), false);
-        event.setViews(views);
-        return toEventFullDto(event);
+        return createFullDto(event);
     }
 
+    @Override
     public List<EventShortDto> getAllEventsByUserId(Long userId, Integer from, Integer size) throws UserNotFoundException {
         User user = userJpaRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("Пользователя не существует", "Пользователь с id " + userId + " не найден"));
         Pageable page = new MyPageable(from, size, SORT_BY_ID);
         List<Event> events = eventJpaRepository.findByInitiator(user, page).getContent();
         return events.stream()
-                .map(EventMapper::toEventShortDto)
+                .map(this::createShortDto)
                 .collect(Collectors.toList());
     }
 
+    @Override
     public EventFullDto updateEventByUser(Long userId, UpdateEventRequest updatedEvent) throws UserNotFoundException, EventNotFoundException, ForbiddenException, CategoryNotFoundException {
         checkUser(userId);
         checkEvent(updatedEvent.getEventId());
         Event event = eventJpaRepository.findById(updatedEvent.getEventId()).get();
-        checkInitiator(userId, updatedEvent.getEventId());
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
+        }
         Category category = categoryJpaRepository.findById(updatedEvent.getCategory()).orElseThrow(() -> new CategoryNotFoundException("Невозможно изменение события", "Указанная категория не существует"));
 
 
@@ -295,64 +299,83 @@ public class EventsServiceImpl implements EventsService {
         } else {
             throw new ForbiddenException("Невозможно редактировать событие", "Не выполнены условия для редактирования");
         }
-        return toEventFullDto(eventJpaRepository.save(event));
+        return createFullDto(eventJpaRepository.save(event));
     }
 
+    @Override
     public EventFullDto addEvent(Long userId, NewEventDto newEventDto) throws UserNotFoundException, CategoryNotFoundException {
         User user = userJpaRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("Пользователя не существует", "Пользователь с id " + userId + " не найден"));
         Category category = categoryJpaRepository.findById(newEventDto.getCategory()).orElseThrow(() -> new CategoryNotFoundException("Невозможно создание события", "Указанная категория не существует"));
         Event event = fromNewEventDto(newEventDto, category, user);
         event = eventJpaRepository.save(event);
-        return toEventFullDto(event);
+        return createFullDto(event);
     }
 
+    @Override
     public EventFullDto getEventByUser(Long userId, Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
         checkUser(userId);
         checkEvent(eventId);
         Event event = eventJpaRepository.findById(eventId).get();
-        checkInitiator(userId, eventId);
-        return toEventFullDto(event);
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
+        }
+        return createFullDto(event);
     }
 
+    @Override
     public EventFullDto rejectEventByUser(Long userId, Long eventId) throws ForbiddenException, UserNotFoundException, EventNotFoundException {
         checkUser(userId);
         checkEvent(eventId);
         Event event = eventJpaRepository.findById(eventId).get();
-        checkInitiator(userId, eventId);
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
+        }
         if (event.getEventState().equals(PENDING)) {
             event.setEventState(CANCELED);
-            return toEventFullDto(event);
+            return createFullDto(event);
         } else {
             throw new ForbiddenException("Невозможно отменить событие", "Событие не находится в ожидании модерации");
         }
     }
 
+    @Override
     public List<ParticipationRequestDto> getUserEventRequests(Long userId, Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
         checkUser(userId);
-        checkEvent(eventId);
-        checkInitiator(userId, eventId);
+        Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Событие не найдено в таблице"));
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
+        }
         List<Request> requests = requestsJpaRepository.findByEventId(eventId);
         return requests.stream()
                 .map(RequestMapper::toParticipationRequestDto)
                 .collect(Collectors.toList());
     }
 
+    @Override
     public ParticipationRequestDto confirmEventRequest(Long userId, Long eventId, Long reqId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
         checkUser(userId);
-        checkEvent(eventId);
-        checkInitiator(userId, eventId);
+        Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Событие не найдено в таблице"));
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
+        }
         Request request = requestsJpaRepository.findById(reqId).orElseThrow(() -> new EventNotFoundException("Запрос не найден", "Запроса с id " + reqId + " не существует"));
         if (!request.getEvent().getInitiator().getId().equals(userId)) {
             throw new ForbiddenException("Запрещено редактировать запрос", "Событие запроса не принадлежит текущему пользователю");
+        }
+        if (event.getParticipantLimit().equals(getConfirmedRequestsQty(event.getId()))) {
+            request.setStatus(REJECTED);
         }
         request.setStatus(CONFIRMED);
         return toParticipationRequestDto(requestsJpaRepository.save(request));
     }
 
+    @Override
     public ParticipationRequestDto rejectEventRequest(Long userId, Long eventId, Long reqId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
         checkUser(userId);
         checkEvent(eventId);
-        checkInitiator(userId, eventId);
+        if (eventJpaRepository.findByIdAndInitiatorId(eventId, userId).isEmpty()) {
+            throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
+        }
         Request request = requestsJpaRepository.findById(reqId).orElseThrow(() -> new EventNotFoundException("Запрос не найден", "Запроса с id " + reqId + " не существует"));
         if (!request.getEvent().getInitiator().getId().equals(userId)) {
             throw new ForbiddenException("Запрещено редактировать запрос", "Событие запроса не принадлежит текущему пользователю");
@@ -373,22 +396,44 @@ public class EventsServiceImpl implements EventsService {
         }
     }
 
-    private void checkInitiator(Long userId, Long eventId) throws ForbiddenException {
-        if (!eventJpaRepository.findById(eventId).get().getInitiator().getId().equals(userId)) {
-            throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
-        }
-    }
-
     private void writeStats(String ip, String uri) {
         EndpointHit endpointHit = new EndpointHit();
         endpointHit.setApp("ewm-service");
         endpointHit.setIp(ip);
         endpointHit.setUri(uri);
         endpointHit.setTimestamp(LocalDateTime.now());
-        hitClient.addStatInfo(endpointHit);
+        statsClient.addStatInfo(endpointHit);
     }
 
     private int getStats(List<String> uris, Boolean unique) {
-        return statsClient.getViews(LocalDateTime.now().minusYears(5).format(DATE_TIME_FORMATTER), LocalDateTime.now().plusYears(5).format(DATE_TIME_FORMATTER), uris, unique);
+        ViewStats[] stats = statsClient.getViewStat(LocalDateTime.now().minusYears(5).format(DATE_TIME_FORMATTER),
+                LocalDateTime.now().plusYears(5).format(DATE_TIME_FORMATTER), uris, unique);
+        return stats.length;
+    }
+
+    private int getStatsForEvent(Long eventId) {
+        List<String> uris = List.of("/events/" + eventId);
+        return getStats(uris, false);
+    }
+
+    private EventShortDto createShortDto(Event event) {
+        EventShortDto eventShortDto = toEventShortDto(event);
+        Long eventId = event.getId();
+        eventShortDto.setViews(getStatsForEvent(eventId));
+        eventShortDto.setConfirmedRequests(getConfirmedRequestsQty(eventId));
+        return eventShortDto;
+    }
+
+    private EventFullDto createFullDto(Event event) {
+        EventFullDto eventFullDto = toEventFullDto(event);
+        Long eventId = event.getId();
+        eventFullDto.setViews(getStatsForEvent(eventId));
+        eventFullDto.setConfirmedRequests(getConfirmedRequestsQty(eventId));
+        return eventFullDto;
+    }
+
+    private int getConfirmedRequestsQty(Long eventId) {
+        List<Request> requests = requestsJpaRepository.findByEventIdAndStatus(eventId, CONFIRMED);
+        return requests.size();
     }
 }

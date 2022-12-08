@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.jackson.Jacksonized;
 
+import javax.validation.constraints.Email;
 import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
@@ -18,27 +19,8 @@ public class NewUserRequest {
     @NotNull
     private String name;
     @NotNull
+    @Email
     private String email;
-
-    public static boolean validate(NewUserRequest user) {
-        boolean isValid = false;
-        if (
-                !(user.getEmail() == null
-                        || user.getEmail().isEmpty()
-                        || user.getEmail().isBlank()
-                )) {
-            isValid = true;
-        }
-        return isValid;
-    }
-
-    public static boolean validateMail(NewUserRequest user) {
-        boolean isValid = false;
-        if (!user.getEmail().contains("@") && !(user.getEmail() == null)) {
-            isValid = true;
-        }
-        return isValid;
-    }
 
     @Override
     public boolean equals(Object o) {

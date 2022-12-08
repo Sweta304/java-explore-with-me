@@ -19,6 +19,10 @@ public class BaseClient {
         return makeAndSendRequest(HttpMethod.GET, path, parameters, null);
     }
 
+    protected <T> ResponseEntity<T> getForEntity(String url, Class<T> responseType, Map<String, ?> uriVariables) {
+        return rest.getForEntity(url, responseType, uriVariables);
+    }
+
     protected <T> ResponseEntity<Object> post(String path, T body) {
         return post(path, null, body);
     }

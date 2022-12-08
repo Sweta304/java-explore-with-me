@@ -2,7 +2,6 @@ package ru.practicum.ewm.controllers.priv;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.exceptions.EventNotFoundException;
 import ru.practicum.ewm.exceptions.ForbiddenException;
@@ -14,7 +13,6 @@ import javax.validation.constraints.Positive;
 import java.util.List;
 
 @Slf4j
-@Validated
 @RestController
 @RequestMapping(path = "/users/{userId}/requests")
 public class PrivateRequestsController {
