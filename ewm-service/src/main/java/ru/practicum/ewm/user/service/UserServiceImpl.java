@@ -56,10 +56,10 @@ public class UserServiceImpl implements UserService {
         Pageable page = new MyPageable(from, size, SORT_BY_ID);
         Page<User> requestPage = userRepository.findAllByIdIn(ids, page);
         List<User> users = requestPage.getContent();
-        Map<Long, Long> usersRatings = getUsersRatings(users);
+        Map<Long, Double> usersRatings = getUsersRatings(users);
         return users
                 .stream()
-                .map(x -> makeUserDto(x, usersRatings.get(x)))
+                .map(x -> makeUserDto(x, usersRatings.get(x.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -75,31 +75,33 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private UserDto makeUserDto(User user, Long rating) {
+    private UserDto makeUserDto(User user, Double rating) {
         UserDto userDto = toUserDto(user);
         userDto.setRating(rating);
         return userDto;
     }
 
-    private Long getUserRating(Long userId) {
+    private Double getUserRating(Long userId) {
         List<Event> userEvents = eventJpaRepository.findByInitiatorId(userId);
         List<Long> eventsIds = userEvents.stream().map(Event::getId).collect(Collectors.toList());
         List<Rating> ratings = ratingJpaRepository.findByEventIdIn(eventsIds);
         Long likes = ratings.stream().filter(Rating::getLiked).count();
         Long dislikes = ratings.stream().filter(Rating::getDisliked).count();
-        Long rating = 0L;
+        Double rating = 0.0;
         if (!userEvents.isEmpty()) {
-            rating = (likes - dislikes) / userEvents.size();
+            rating = (Double.valueOf(likes) - Double.valueOf(dislikes)) / userEvents.size();
+            Double scale = Math.pow(10, 2);
+            rating = Math.ceil(rating * scale) / scale;
         }
         return rating;
     }
 
-    private Map<Long, Long> getUsersRatings(List<User> users) {
+    private Map<Long, Double> getUsersRatings(List<User> users) {
         Map<Long, List<Rating>> usersRatings = new HashMap<>();
         List<Long> userIds = users.stream().map(x -> x.getId()).collect(Collectors.toList());
         List<Rating> ratings = ratingJpaRepository.findByEventInitiatorIdIn(userIds);
         userIds.forEach(x -> usersRatings.put(x, ratings.stream().filter(y -> y.getEvent().getInitiator().getId().equals(x)).collect(Collectors.toList())));
-        Map<Long, Long> avgRatings = new HashMap<>();
+        Map<Long, Double> avgRatings = new HashMap<>();
         userIds.forEach(x -> avgRatings.put(x, countRating(usersRatings.get(x))));
         return avgRatings;
     }
@@ -112,10 +114,12 @@ public class UserServiceImpl implements UserService {
         return rating.stream().filter(Rating::getDisliked).count();
     }
 
-    private Long countRating(List<Rating> ratings) {
-        Long rating = 0L;
+    private Double countRating(List<Rating> ratings) {
+        Double rating = 0.0;
         if (!ratings.isEmpty()) {
-            rating = (getUserEventsLikes(ratings) - getUserEventsDislikes(ratings)) / ratings.size();
+            rating = (Double.valueOf(getUserEventsLikes(ratings)) - Double.valueOf(getUserEventsDislikes(ratings))) / ratings.size();
+            Double scale = Math.pow(10, 2);
+            rating = Math.ceil(rating * scale) / scale;
         }
         return rating;
     }

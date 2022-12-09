@@ -79,6 +79,7 @@ public class RequestsServiceImpl implements RequestsService {
             request.setStatus(RequestStates.PENDING);
         } else {
             request.setStatus(CONFIRMED);
+            createNewRatingRecord(request.getRequester().getId(), eventId);
         }
         request.setEvent(event);
         request.setCreated(LocalDateTime.now());
@@ -119,5 +120,16 @@ public class RequestsServiceImpl implements RequestsService {
         if (rating != null) {
             ratingJpaRepository.delete(rating);
         }
+    }
+
+    private void createNewRatingRecord(Long userId, Long eventId) {
+        Event event = eventJpaRepository.findById(eventId).get();
+        User user = userJpaRepository.findById(userId).get();
+        Rating rating = new Rating();
+        rating.setEvent(event);
+        rating.setVisitor(user);
+        rating.setLiked(false);
+        rating.setDisliked(false);
+        ratingJpaRepository.save(rating);
     }
 }

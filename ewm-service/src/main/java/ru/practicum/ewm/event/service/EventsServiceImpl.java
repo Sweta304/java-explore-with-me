@@ -30,10 +30,7 @@ import ru.practicum.ewm.user.repository.UserJpaRepository;
 import ru.practicum.ewm.utils.MyPageable;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.dictionary.EventSorting.*;
@@ -211,12 +208,8 @@ public class EventsServiceImpl implements EventsService {
             rangeStart = LocalDateTime.now().format(DATE_TIME_FORMATTER);
         }
         Sort eventSort;
-        if (EventSorting.valueOf(sort).equals(EVENT_DATE)) {
+        if (EventSorting.valueOf(sort).equals(EVENT_DATE) || EventSorting.valueOf(sort).equals(VIEWS) || EventSorting.valueOf(sort).equals(RATING)) {
             eventSort = Sort.by(Sort.Direction.DESC, "eventDate");
-        } else if (EventSorting.valueOf(sort).equals(VIEWS)) {
-            eventSort = Sort.by(Sort.Direction.DESC, "views");
-        } else if (EventSorting.valueOf(sort).equals(RATING)) {
-            eventSort = Sort.by(Sort.Direction.DESC, "rating");
         } else {
             throw new IncorrectEventParamsException("Невозможно выполнить сортировку", "Некорректно заданы параметры сортировки");
         }
@@ -248,10 +241,22 @@ public class EventsServiceImpl implements EventsService {
         if (onlyAvailable != null && onlyAvailable) {
             eventList = eventList.stream().filter(x -> x.getParticipantLimit() > confirmedRequests.get(x.getId())).collect(Collectors.toList());
         }
-
         Map<Long, Long> eventsStats = getStatsForEventList(eventList, false);
         List<Rating> allEventsRatings = ratingJpaRepository.findByEventIdIn(extractEventsIds(eventList));
         Map<Long, Long> ratings = getEventsRatings(getEventsLikes(allEventsRatings, extractEventsIds(eventList)), getEventsDislikes(allEventsRatings, extractEventsIds(eventList)));
+        if (EventSorting.valueOf(sort).equals(RATING)) {
+            return eventList
+                    .stream()
+                    .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId())))
+                    .sorted(Comparator.comparingLong(EventShortDto::getRating).reversed())
+                    .collect(Collectors.toList());
+        } else if (EventSorting.valueOf(sort).equals(VIEWS)) {
+            return eventList
+                    .stream()
+                    .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId())))
+                    .sorted(Comparator.comparingLong(EventShortDto::getViews).reversed())
+                    .collect(Collectors.toList());
+        }
         return eventList
                 .stream()
                 .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId())))
@@ -416,9 +421,9 @@ public class EventsServiceImpl implements EventsService {
     public EventFullDto addLike(Long userId, Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
         Event event = eventJpaRepository.findEventByIdAndEventState(eventId, PUBLISHED).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Не найдено опубликованное событие с заданным id"));
         User user = userJpaRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("Пользователя не существует", "Пользователь с id " + userId + " не найден"));
-        if (event.getEventDate().isAfter(LocalDateTime.now())) {
-            throw new ForbiddenException("Нельзя поставить лайк", "Вы еще не посетили событие");
-        }
+//        if (event.getEventDate().isAfter(LocalDateTime.now())) {
+//            throw new ForbiddenException("Нельзя поставить лайк", "Вы еще не посетили событие");
+//        }
         Rating rating = ratingJpaRepository.findByVisitorAndEvent(user, event);
         if (rating != null) {
             rating.setLiked(true);
@@ -429,15 +434,16 @@ public class EventsServiceImpl implements EventsService {
             throw new ForbiddenException("Нельзя поставить лайк", "Вы не являетесь участником события");
         }
         ratingJpaRepository.save(rating);
-        return toEventFullDto(eventJpaRepository.save(event));
+        List<Rating> eventRatings = ratingJpaRepository.findByEventId(event.getId());
+        return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings));
     }
 
     public EventFullDto addDislike(Long userId, Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
         Event event = eventJpaRepository.findEventByIdAndEventState(eventId, PUBLISHED).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Не найдено опубликованное событие с заданным id"));
         User user = userJpaRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("Пользователя не существует", "Пользователь с id " + userId + " не найден"));
-        if (event.getEventDate().isAfter(LocalDateTime.now())) {
-            throw new ForbiddenException("Нельзя поставить дизлайк", "Вы еще не посетили событие");
-        }
+//        if (event.getEventDate().isAfter(LocalDateTime.now())) {
+//            throw new ForbiddenException("Нельзя поставить дизлайк", "Вы еще не посетили событие");
+//        }
         Rating rating = ratingJpaRepository.findByVisitorAndEvent(user, event);
         if (rating != null) {
             rating.setDisliked(true);
@@ -448,7 +454,8 @@ public class EventsServiceImpl implements EventsService {
             throw new ForbiddenException("Нельзя поставить дизлайк", "Вы не являетесь участником события");
         }
         ratingJpaRepository.save(rating);
-        return toEventFullDto(eventJpaRepository.save(event));
+        List<Rating> eventRatings = ratingJpaRepository.findByEventId(event.getId());
+        return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings));
     }
 
     private void checkUser(Long id) throws UserNotFoundException {

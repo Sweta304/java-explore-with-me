@@ -45,7 +45,7 @@ public class PrivateEventsController {
     }
 
     @PostMapping
-    public EventFullDto updateEventByUser(@PathVariable @Positive Long userId, @RequestBody @Valid NewEventDto newEventDto) throws UserNotFoundException, CategoryNotFoundException {
+    public EventFullDto addEventByUser(@PathVariable @Positive Long userId, @RequestBody @Valid NewEventDto newEventDto) throws UserNotFoundException, CategoryNotFoundException {
         log.info("Создание нового события пользователем с id {}", userId);
         return eventsService.addEvent(userId, newEventDto);
     }
