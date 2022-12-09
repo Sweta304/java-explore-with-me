@@ -28,8 +28,6 @@ public class Event {
     @ManyToOne
     @JoinColumn(name = "category")
     private Category category;
-    @Column(name = "confirmed_requests")
-    private Integer confirmedRequests;
     @Column(name = "created_on")
     private LocalDateTime createdOn;
     @Column(name = "description")
@@ -46,7 +44,7 @@ public class Event {
     @Column(name = "paid")
     private Boolean paid;
     @Column(name = "participant_limit")
-    private Integer participantLimit;
+    private Long participantLimit;
     @Column(name = "published_on")
     private LocalDateTime publishedOn;
     @Column(name = "request_moderation")

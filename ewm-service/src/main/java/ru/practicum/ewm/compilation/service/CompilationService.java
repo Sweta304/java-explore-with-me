@@ -15,7 +15,7 @@ public interface CompilationService {
 
     void deleteCompilation(Long compId) throws CompilationNotFoundException;
 
-    void deleteEventFromCompilation(Long compId, Long eventId) throws CompilationNotFoundException, EventNotFoundException, ForbiddenException;
+    void deleteEventFromCompilation(Long compId, Long eventId) throws CompilationNotFoundException, EventNotFoundException;
 
     void addEventToCompilation(Long compId, Long eventId) throws CompilationNotFoundException,
             EventNotFoundException, ForbiddenException;

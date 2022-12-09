@@ -39,33 +39,32 @@ public class CompilationServiceImpl implements CompilationService {
         this.eventJpaRepository = eventJpaRepository;
     }
 
+    @Override
     public CompilationDto addCompilation(NewCompilationDto newCompilationDto) {
-        Set<Event> events = new HashSet<>();
-        newCompilationDto.getEvents().forEach(x -> events.add(eventJpaRepository.findById(x).get()));
+        List<Event> eventsFromDb = eventJpaRepository.findAllByIdIn(newCompilationDto.getEvents());
+        Set<Event> events = new HashSet<>(eventsFromDb);
         Compilation compilation = fromNewCompilationDto(newCompilationDto, events);
         compilation = compilationJpaRepository.save(compilation);
         return toCompilationDto(compilation);
     }
 
+    @Override
     public void deleteCompilation(Long compId) throws CompilationNotFoundException {
         Compilation compilation = compilationJpaRepository.findById(compId).orElseThrow(() -> new CompilationNotFoundException("подборки с id " + compId + " не существует", "в списке подборок не существует запрошенной подборки"));
         compilationJpaRepository.delete(compilation);
         log.info("удалена подборка с id {}", compId);
     }
 
-    public void deleteEventFromCompilation(Long compId, Long eventId) throws CompilationNotFoundException, EventNotFoundException, ForbiddenException {
+    @Override
+    public void deleteEventFromCompilation(Long compId, Long eventId) throws CompilationNotFoundException, EventNotFoundException {
         Compilation compilation = compilationJpaRepository.findById(compId).orElseThrow(() -> new CompilationNotFoundException("подборки с id " + compId + " не существует", "в списке подборок не существует запрошенной подборки"));
         Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("события с id " + eventId + " не существует", "в списке событий не существует запрошенного события"));
-        if (compilation.getEvents().contains(event)) {
-            compilation.getEvents().remove(event);
-            log.info("удалено событие {} из подборки {}", eventId, compId);
-        } else {
-            log.info("неудачная попытка удалить событие {} из подборки {}", eventId, compId);
-            throw new ForbiddenException("Невозможно удалить событие", "Событие " + eventId + " не найдено в подборке " + compId);
-        }
+        compilation.getEvents().removeIf(x -> x.getId().equals(event.getId()));
+        log.info("удалено событие {} из подборки {}", eventId, compId);
         compilationJpaRepository.save(compilation);
     }
 
+    @Override
     public void addEventToCompilation(Long compId, Long eventId) throws CompilationNotFoundException, EventNotFoundException, ForbiddenException {
         Compilation compilation = compilationJpaRepository.findById(compId).orElseThrow(() -> new CompilationNotFoundException("подборки с id " + compId + " не существует", "в списке подборок не существует запрошенной подборки"));
         Event event = eventJpaRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("события с id " + eventId + " не существует", "в списке событий не существует запрошенного события"));
@@ -79,18 +78,21 @@ public class CompilationServiceImpl implements CompilationService {
         compilationJpaRepository.save(compilation);
     }
 
+    @Override
     public void unpinCompilation(Long compId) throws CompilationNotFoundException {
         Compilation compilation = compilationJpaRepository.findById(compId).orElseThrow(() -> new CompilationNotFoundException("подборки с id " + compId + " не существует", "в списке подборок не существует запрошенной подборки"));
         compilation.setPinned(false);
         compilationJpaRepository.save(compilation);
     }
 
+    @Override
     public void pinCompilation(Long compId) throws CompilationNotFoundException {
         Compilation compilation = compilationJpaRepository.findById(compId).orElseThrow(() -> new CompilationNotFoundException("подборки с id " + compId + " не существует", "в списке подборок не существует запрошенной подборки"));
         compilation.setPinned(true);
         compilationJpaRepository.save(compilation);
     }
 
+    @Override
     public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
         Pageable page = new MyPageable(from, size, SORT_BY_ID);
         List<Compilation> compilations;
@@ -104,6 +106,7 @@ public class CompilationServiceImpl implements CompilationService {
                 .collect(Collectors.toList());
     }
 
+    @Override
     public CompilationDto getCompilation(Long compId) throws CompilationNotFoundException {
         Compilation compilation = compilationJpaRepository.findById(compId).orElseThrow(() -> new CompilationNotFoundException("Подборка не найдена", "Подборки с id " + compId + "не существует"));
         return toCompilationDto(compilation);

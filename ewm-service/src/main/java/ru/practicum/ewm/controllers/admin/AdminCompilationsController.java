@@ -2,7 +2,6 @@ package ru.practicum.ewm.controllers.admin;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.compilation.dto.CompilationDto;
 import ru.practicum.ewm.compilation.dto.NewCompilationDto;
@@ -15,7 +14,6 @@ import javax.validation.Valid;
 import javax.validation.constraints.Positive;
 
 @Slf4j
-@Validated
 @RestController
 @RequestMapping(path = "/admin/compilations")
 public class AdminCompilationsController {
@@ -41,7 +39,7 @@ public class AdminCompilationsController {
     @DeleteMapping("/{compId}/events/{eventId}")
     public void deleteEventFromCompilation(@PathVariable @Positive Long compId,
                                            @PathVariable @Positive Long eventId) throws CompilationNotFoundException,
-            EventNotFoundException, ForbiddenException {
+            EventNotFoundException {
         log.info("Админ удаляет событие {} из подборки {}", eventId, compId);
         compilationService.deleteEventFromCompilation(compId, eventId);
     }

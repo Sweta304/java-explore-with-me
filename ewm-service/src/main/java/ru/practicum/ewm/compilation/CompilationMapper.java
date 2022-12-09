@@ -4,21 +4,19 @@ package ru.practicum.ewm.compilation;
 import ru.practicum.ewm.compilation.dto.CompilationDto;
 import ru.practicum.ewm.compilation.dto.NewCompilationDto;
 import ru.practicum.ewm.compilation.model.Compilation;
+import ru.practicum.ewm.event.EventMapper;
 import ru.practicum.ewm.event.dto.EventShortDto;
 import ru.practicum.ewm.event.model.Event;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
-import static ru.practicum.ewm.event.EventMapper.toEventShortDto;
+import java.util.stream.Collectors;
 
 public class CompilationMapper {
 
     public static CompilationDto toCompilationDto(Compilation compilation) {
         Set<Event> events = compilation.getEvents();
-        List<EventShortDto> eventShortDtos = new ArrayList<>();
-        events.forEach(x -> eventShortDtos.add(toEventShortDto(x)));
+        List<EventShortDto> eventShortDtos = events.stream().map(EventMapper::toEventShortDto).collect(Collectors.toList());
         return CompilationDto
                 .builder()
                 .events(eventShortDtos)

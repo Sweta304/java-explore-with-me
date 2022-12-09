@@ -27,7 +27,6 @@ public class EventMapper {
                 .id(event.getId())
                 .annotation(event.getAnnotation())
                 .category(toCategoryDto(event.getCategory()))
-                .confirmedRequests(event.getConfirmedRequests())
                 .eventDate(event.getEventDate().format(DATE_TIME_FORMATTER))
                 .initiator(toUserShortDto(event.getInitiator()))
                 .paid(event.getPaid())
@@ -41,12 +40,10 @@ public class EventMapper {
         Event event = new Event();
         event.setAnnotation(eventDto.getAnnotation());
         event.setCategory(fromCategoryDto(eventDto.getCategory()));
-        event.setConfirmedRequests(eventDto.getConfirmedRequests());
         event.setEventDate(LocalDateTime.parse(eventDto.getEventDate(), DATE_TIME_FORMATTER));
         event.setInitiator(fromUserShortDto(eventDto.getInitiator()));
         event.setPaid(eventDto.getPaid());
         event.setDescription(eventDto.getTitle());
-        event.setViews(eventDto.getViews());
         return event;
     }
 
@@ -59,7 +56,6 @@ public class EventMapper {
                 .id(event.getId())
                 .annotation(event.getAnnotation())
                 .category(toCategoryDto(event.getCategory()))
-                .confirmedRequests(event.getConfirmedRequests())
                 .createdOn(event.getCreatedOn().format(DATE_TIME_FORMATTER))
                 .description(event.getDescription())
                 .eventDate(event.getEventDate().format(DATE_TIME_FORMATTER))
@@ -74,7 +70,6 @@ public class EventMapper {
                 .requestModeration(event.getRequestModeration())
                 .state(event.getEventState())
                 .title(event.getTitle())
-                .views(event.getViews())
                 .rating(event.getRating())
                 .likes(event.getLikes())
                 .dislikes(event.getDislikes())
@@ -96,7 +91,6 @@ public class EventMapper {
         event.setEventState(PENDING);
         event.setCreatedOn(LocalDateTime.now());
         event.setInitiator(userId);
-        event.setConfirmedRequests(0);
         return event;
     }
 }

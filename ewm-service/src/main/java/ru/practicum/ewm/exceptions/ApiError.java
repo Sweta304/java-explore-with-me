@@ -7,11 +7,11 @@ import java.time.LocalDateTime;
 import static ru.practicum.ewm.utils.Constants.DATE_TIME_FORMATTER;
 
 public class ApiError {
-    String errors;
-    String message;
-    String reason;
-    String status;
-    String timestamp;
+    private String errors;
+    private String message;
+    private String reason;
+    private String status;
+    private String timestamp;
 
     public ApiError(String errors, String message, String reason, HttpStatus status) {
         this.errors = errors;
