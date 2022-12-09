@@ -13,5 +13,9 @@ import java.util.List;
 public interface RatingJpaRepository extends JpaRepository<Rating, Long>, QuerydslPredicateExecutor<Rating> {
     Rating findByVisitorAndEvent(User visitor, Event event);
 
-    List<Rating> findByEvent(Event event);
+    List<Rating> findByEventId(Long eventId);
+
+    List<Rating> findByEventIdIn(List<Long> eventId);
+
+    List<Rating> findByEventInitiatorIdIn(List<Long> initiatorId);
 }

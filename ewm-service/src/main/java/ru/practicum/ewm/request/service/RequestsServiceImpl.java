@@ -39,8 +39,6 @@ public class RequestsServiceImpl implements RequestsService {
     @Autowired
     public RequestsServiceImpl(EventJpaRepository eventJpaRepository,
                                UserJpaRepository userJpaRepository,
-                               RequestsJpaRepository requestsJpaRepository) {
-                               CategoryJpaRepository categoryJpaRepository,
                                RequestsJpaRepository requestsJpaRepository,
                                RatingJpaRepository ratingJpaRepository) {
         this.eventJpaRepository = eventJpaRepository;
@@ -93,10 +91,9 @@ public class RequestsServiceImpl implements RequestsService {
         checkUser(userId);
         Request request = requestsJpaRepository.findById(requestId).orElseThrow(() -> new EventNotFoundException("Запроса не существует", "Запрос не найден в списке запросов"));
         request.setStatus(RequestStates.CANCELED);
+        Event event = checkEvent(request.getEvent().getId());
         removeRatingRecord(userId, event.getId());
-        updateEventRating(event.getId());
         eventJpaRepository.save(event);
-        updateInitiatorRating(userId);
         return toParticipationRequestDto(requestsJpaRepository.save(request));
     }
 
@@ -122,32 +119,5 @@ public class RequestsServiceImpl implements RequestsService {
         if (rating != null) {
             ratingJpaRepository.delete(rating);
         }
-    }
-
-    private void updateEventRating(Long eventId) {
-        Event event = eventJpaRepository.findById(eventId).get();
-        List<Rating> ratings = ratingJpaRepository.findByEvent(event);
-        Long likes = ratings.stream()
-                .filter(Rating::getLiked)
-                .count();
-        Long dislikes = ratings.stream()
-                .filter(Rating::getDisliked)
-                .count();
-        Long rating = likes - dislikes;
-        event.setRating(rating);
-        event.setLikes(likes);
-        event.setDislikes(dislikes);
-    }
-
-    private void updateInitiatorRating(Long userId) {
-        User user = userJpaRepository.findById(userId).get();
-        List<Event> userEvents = eventJpaRepository.findByInitiatorId(user.getId());
-        Double rating = 0.0;
-        for (Event x : userEvents) {
-            rating = rating + x.getRating();
-        }
-        rating = rating / userEvents.size();
-        user.setUserRating(rating);
-        userJpaRepository.save(user);
     }
 }
