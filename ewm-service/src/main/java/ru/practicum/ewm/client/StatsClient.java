@@ -37,7 +37,7 @@ public class StatsClient extends BaseClient {
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("start", start);
         parameters.put("end", end);
-        parameters.put("uris", uris);
+        parameters.put("uris", uris.toString().replace("[", "").replace("]", "").replace(" ", ""));
         parameters.put("unique", unique);
         ResponseEntity<ViewStats[]> responseEntity = getForEntity(STATS_PREFIX.concat("?start={start}&end={end}&uris={uris}&unique={unique}"), ViewStats[].class, parameters);
         return responseEntity.getBody();

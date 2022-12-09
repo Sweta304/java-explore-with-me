@@ -19,7 +19,7 @@ public class EventFullDto {
     private String annotation;
     @NotNull
     private CategoryDto category;
-    private Integer confirmedRequests;
+    private Long confirmedRequests;
     private String createdOn;
     private String description;
     @NotNull
@@ -31,12 +31,12 @@ public class EventFullDto {
     private Location location;
     @NotNull
     private Boolean paid;
-    private Integer participantLimit;
+    private Long participantLimit;
     private String publishedOn;
     private Boolean requestModeration;
     private EventStates state;
     @NotNull
     private String title;
-    private Integer views;
+    private Long views;
 
 }

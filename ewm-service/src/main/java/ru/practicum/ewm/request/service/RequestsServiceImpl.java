@@ -54,9 +54,8 @@ public class RequestsServiceImpl implements RequestsService {
     @Override
     public ParticipationRequestDto addRequest(Long userId, Long eventId) throws ForbiddenException, UserNotFoundException, EventNotFoundException {
         checkUser(userId);
-        checkEvent(eventId);
+        Event event = checkEvent(eventId);
         User user = userJpaRepository.findById(userId).get();
-        Event event = eventJpaRepository.findById(eventId).get();
         if (requestsJpaRepository.findByEventIdAndRequesterId(eventId, userId).isPresent()) {
             throw new ForbiddenException("Запрещено добавление запроса на участие в событии " + eventId, "Запрос на участие в событии от данного пользователя уже зарегистрирован");
         }
@@ -96,20 +95,12 @@ public class RequestsServiceImpl implements RequestsService {
         }
     }
 
-    private void checkEvent(Long id) throws EventNotFoundException {
-        if (eventJpaRepository.findById(id).isEmpty()) {
-            throw new EventNotFoundException("События с id " + id + " не существует", "Событие не найдено в таблице");
-        }
+    private Event checkEvent(Long id) throws EventNotFoundException {
+        Event event = eventJpaRepository.findById(id).orElseThrow(() -> new EventNotFoundException("События с id " + id + " не существует", "Событие не найдено в таблице"));
+        return event;
     }
 
-    private void checkInitiator(Long userId, Long eventId) throws ForbiddenException {
-        if (!eventJpaRepository.findById(eventId).get().getInitiator().getId().equals(userId)) {
-            throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
-        }
-    }
-
-    private int getConfirmedRequestsQty(Long eventId) {
-        List<Request> requests = requestsJpaRepository.findByEventIdAndStatus(eventId, CONFIRMED);
-        return requests.size();
+    private Long getConfirmedRequestsQty(Long eventId) {
+        return requestsJpaRepository.findByEventIdAndStatus(eventId, CONFIRMED).stream().count();
     }
 }

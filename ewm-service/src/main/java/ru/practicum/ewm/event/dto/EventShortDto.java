@@ -18,7 +18,7 @@ public class EventShortDto {
     private String annotation;
     @NotNull
     private CategoryDto category;
-    private Integer confirmedRequests;
+    private Long confirmedRequests;
     @NotNull
     private String eventDate;
     private Long id;
@@ -28,5 +28,5 @@ public class EventShortDto {
     private Boolean paid;
     @NotNull
     private String title;
-    private Integer views;
+    private Long views;
 }

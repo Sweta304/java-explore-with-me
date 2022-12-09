@@ -19,6 +19,6 @@ public class UpdateEventRequest {
     @NotNull
     private Long eventId;
     private Boolean paid;
-    private Integer participantLimit;
+    private Long participantLimit;
     private String title;
 }

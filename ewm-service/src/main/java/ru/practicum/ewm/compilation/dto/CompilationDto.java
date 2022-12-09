@@ -17,7 +17,7 @@ public class CompilationDto {
     private List<EventShortDto> events;
     private Long id;
     @NotNull
-    boolean pinned;
+    private boolean pinned;
     @NotNull
     private String title;
 

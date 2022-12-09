@@ -29,7 +29,9 @@ import ru.practicum.ewm.utils.MyPageable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static ru.practicum.ewm.dictionary.EventSorting.EVENT_DATE;
@@ -112,10 +114,11 @@ public class EventsServiceImpl implements EventsService {
         }
 
         Page<Event> requestPage = eventJpaRepository.findAll(predicate, page);
-
+        List<Event> eventList = requestPage.getContent();
+        Map<Long, Long> eventsStats = getStatsForEventList(eventList, false);
         return requestPage.getContent()
                 .stream()
-                .map(this::createFullDto)
+                .map(x -> createFullDto(x, eventsStats.get(x.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -155,7 +158,7 @@ public class EventsServiceImpl implements EventsService {
         }
 
         eventJpaRepository.save(event);
-        return createFullDto(event);
+        return createFullDto(event, getStatsForEvent(event.getId()));
     }
 
     @Override
@@ -167,7 +170,7 @@ public class EventsServiceImpl implements EventsService {
         } else {
             throw new IncorrectEventParamsException("Невозможно опубликовать событие", "До начала события мене часа, либо событие уже было опубликовано ранее");
         }
-        return createFullDto(eventJpaRepository.save(event));
+        return createFullDto(eventJpaRepository.save(event), getStatsForEvent(event.getId()));
     }
 
     @Override
@@ -178,7 +181,7 @@ public class EventsServiceImpl implements EventsService {
         } else {
             throw new IncorrectEventParamsException("Невозможно отклонить публикацию события", "Событие уже было опубликовано");
         }
-        return createFullDto(eventJpaRepository.save(event));
+        return createFullDto(eventJpaRepository.save(event), getStatsForEvent(event.getId()));
     }
 
     @Override
@@ -222,19 +225,20 @@ public class EventsServiceImpl implements EventsService {
                 .add(rangeEndFilter, event.eventDate::before)
                 .buildAnd();
 
-        if (onlyAvailable != null && onlyAvailable) {
-            qPredicates
-                    .add(getConfirmedRequestsQty(Long.getLong(event.id.toString())), event.participantLimit::gt)
-                    .buildAnd();
-        }
 
         Predicate predicate = qPredicates.buildAnd();
 
         Page<Event> requestPage = eventJpaRepository.findAll(predicate, page);
         writeStats(ip, uri);
+        List<Event> eventList = requestPage.getContent();
+        Map<Long, Long> confirmedRequests = getConfirmedRequestsQtyForEventsList(eventList);
+        if (onlyAvailable != null && onlyAvailable) {
+            eventList = eventList.stream().filter(x -> x.getParticipantLimit() > confirmedRequests.get(x.getId())).collect(Collectors.toList());
+        }
+        Map<Long, Long> eventsStats = getStatsForEventList(eventList, false);
         return requestPage.getContent()
                 .stream()
-                .map(this::createShortDto)
+                .map(x -> createShortDto(x, eventsStats.get(x.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -242,8 +246,7 @@ public class EventsServiceImpl implements EventsService {
     public EventFullDto getEvent(Long eventId, String ip, String uri) throws EventNotFoundException {
         Event event = eventJpaRepository.findEventByIdAndEventState(eventId, PUBLISHED).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Не найдено опубликованное событие с заданным id"));
         writeStats(ip, uri);
-        int views = getStats(List.of(uri), false);
-        return createFullDto(event);
+        return createFullDto(event, getStatsForEvent(event.getId()));
     }
 
     @Override
@@ -251,8 +254,9 @@ public class EventsServiceImpl implements EventsService {
         User user = userJpaRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("Пользователя не существует", "Пользователь с id " + userId + " не найден"));
         Pageable page = new MyPageable(from, size, SORT_BY_ID);
         List<Event> events = eventJpaRepository.findByInitiator(user, page).getContent();
+        Map<Long, Long> eventsStats = getStatsForEventList(events, false);
         return events.stream()
-                .map(this::createShortDto)
+                .map(x -> createShortDto(x, eventsStats.get(x.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -299,7 +303,7 @@ public class EventsServiceImpl implements EventsService {
         } else {
             throw new ForbiddenException("Невозможно редактировать событие", "Не выполнены условия для редактирования");
         }
-        return createFullDto(eventJpaRepository.save(event));
+        return createFullDto(eventJpaRepository.save(event), getStatsForEvent(event.getId()));
     }
 
     @Override
@@ -308,7 +312,7 @@ public class EventsServiceImpl implements EventsService {
         Category category = categoryJpaRepository.findById(newEventDto.getCategory()).orElseThrow(() -> new CategoryNotFoundException("Невозможно создание события", "Указанная категория не существует"));
         Event event = fromNewEventDto(newEventDto, category, user);
         event = eventJpaRepository.save(event);
-        return createFullDto(event);
+        return createFullDto(event, getStatsForEvent(event.getId()));
     }
 
     @Override
@@ -319,7 +323,7 @@ public class EventsServiceImpl implements EventsService {
         if (!event.getInitiator().getId().equals(userId)) {
             throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
         }
-        return createFullDto(event);
+        return createFullDto(event, getStatsForEvent(event.getId()));
     }
 
     @Override
@@ -332,7 +336,7 @@ public class EventsServiceImpl implements EventsService {
         }
         if (event.getEventState().equals(PENDING)) {
             event.setEventState(CANCELED);
-            return createFullDto(event);
+            return createFullDto(event, getStatsForEvent(event.getId()));
         } else {
             throw new ForbiddenException("Невозможно отменить событие", "Событие не находится в ожидании модерации");
         }
@@ -362,7 +366,7 @@ public class EventsServiceImpl implements EventsService {
         if (!request.getEvent().getInitiator().getId().equals(userId)) {
             throw new ForbiddenException("Запрещено редактировать запрос", "Событие запроса не принадлежит текущему пользователю");
         }
-        if (event.getParticipantLimit().equals(getConfirmedRequestsQty(event.getId()))) {
+        if (event.getParticipantLimit().equals(getConfirmedRequestsQtyForEvent(event.getId()))) {
             request.setStatus(REJECTED);
         }
         request.setStatus(CONFIRMED);
@@ -405,35 +409,60 @@ public class EventsServiceImpl implements EventsService {
         statsClient.addStatInfo(endpointHit);
     }
 
-    private int getStats(List<String> uris, Boolean unique) {
+    private ViewStats[] getStats(List<String> uris, Boolean unique) {
         ViewStats[] stats = statsClient.getViewStat(LocalDateTime.now().minusYears(5).format(DATE_TIME_FORMATTER),
                 LocalDateTime.now().plusYears(5).format(DATE_TIME_FORMATTER), uris, unique);
-        return stats.length;
+        return stats;
     }
 
-    private int getStatsForEvent(Long eventId) {
+    private Long getStatsForEvent(Long eventId) {
         List<String> uris = List.of("/events/" + eventId);
-        return getStats(uris, false);
+        ViewStats[] stats = getStats(uris, false);
+        Long hits = 0L;
+        if (stats.length != 0) {
+            hits = getStats(uris, false)[0].getHits();
+        }
+        return hits;
     }
 
-    private EventShortDto createShortDto(Event event) {
+    private Map<Long, Long> getStatsForEventList(List<Event> events, Boolean unique) {
+        List<String> uris = new ArrayList<>();
+        events.forEach(x -> uris.add("/events/" + x.getId()));
+        ViewStats[] stats = statsClient.getViewStat(LocalDateTime.now().minusYears(5).format(DATE_TIME_FORMATTER),
+                LocalDateTime.now().plusYears(5).format(DATE_TIME_FORMATTER), uris, unique);
+        List<ViewStats> a = List.of(stats);
+        Map<Long, Long> eventsHits = new HashMap<>();
+        a.stream().forEach(x -> eventsHits.put(Long.valueOf(x.getUri().replace("/events/", "")), x.getHits()));
+        return eventsHits;
+    }
+
+    private EventShortDto createShortDto(Event event, Long views) {
         EventShortDto eventShortDto = toEventShortDto(event);
         Long eventId = event.getId();
-        eventShortDto.setViews(getStatsForEvent(eventId));
-        eventShortDto.setConfirmedRequests(getConfirmedRequestsQty(eventId));
+        eventShortDto.setViews(views);
+        eventShortDto.setConfirmedRequests(getConfirmedRequestsQtyForEvent(eventId));
         return eventShortDto;
     }
 
-    private EventFullDto createFullDto(Event event) {
+    private EventFullDto createFullDto(Event event, Long views) {
         EventFullDto eventFullDto = toEventFullDto(event);
         Long eventId = event.getId();
-        eventFullDto.setViews(getStatsForEvent(eventId));
-        eventFullDto.setConfirmedRequests(getConfirmedRequestsQty(eventId));
+        eventFullDto.setViews(views);
+        eventFullDto.setConfirmedRequests(getConfirmedRequestsQtyForEvent(eventId));
         return eventFullDto;
     }
 
-    private int getConfirmedRequestsQty(Long eventId) {
-        List<Request> requests = requestsJpaRepository.findByEventIdAndStatus(eventId, CONFIRMED);
-        return requests.size();
+    private Long getConfirmedRequestsQtyForEvent(Long eventId) {
+        return requestsJpaRepository.findByEventIdAndStatus(eventId, CONFIRMED).stream().count();
     }
+
+    private Map<Long, Long> getConfirmedRequestsQtyForEventsList(List<Event> events) {
+        List<Long> ids = events.stream().map(Event::getId).collect(Collectors.toList());
+        List<Request> requests = requestsJpaRepository.findByStatusAndEventIdIn(CONFIRMED, ids);
+        Map<Long, Long> confirmedRequestsByEvents = new HashMap<>();
+        ids.forEach(x -> confirmedRequestsByEvents.put(x, requests.stream().filter(y -> y.getEvent().getId().equals(x)).count()));
+        return confirmedRequestsByEvents;
+    }
+
+
 }
