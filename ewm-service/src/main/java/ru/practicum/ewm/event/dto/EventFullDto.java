@@ -38,5 +38,8 @@ public class EventFullDto {
     @NotNull
     private String title;
     private Long views;
+    private Long rating;
+    private Long likes;
+    private Long dislikes;
 
 }

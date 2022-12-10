@@ -54,4 +54,8 @@ public interface EventsService {
     ParticipationRequestDto confirmEventRequest(Long userId, Long eventId, Long reqId) throws UserNotFoundException, EventNotFoundException, ForbiddenException;
 
     ParticipationRequestDto rejectEventRequest(Long userId, Long eventId, Long reqId) throws UserNotFoundException, EventNotFoundException, ForbiddenException;
+
+    EventFullDto addLike(Long userId, Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException;
+
+    EventFullDto addDislike(Long userId, Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException;
 }

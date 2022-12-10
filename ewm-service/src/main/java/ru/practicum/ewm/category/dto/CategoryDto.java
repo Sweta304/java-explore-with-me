@@ -15,5 +15,4 @@ public class CategoryDto {
     private Long id;
     @NotNull
     private String name;
-
 }

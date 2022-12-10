@@ -9,6 +9,8 @@ import ru.practicum.ewm.event.repository.EventJpaRepository;
 import ru.practicum.ewm.exceptions.EventNotFoundException;
 import ru.practicum.ewm.exceptions.ForbiddenException;
 import ru.practicum.ewm.exceptions.UserNotFoundException;
+import ru.practicum.ewm.rating.model.Rating;
+import ru.practicum.ewm.rating.repository.RatingJpaRepository;
 import ru.practicum.ewm.request.RequestMapper;
 import ru.practicum.ewm.request.dto.ParticipationRequestDto;
 import ru.practicum.ewm.request.model.Request;
@@ -32,14 +34,17 @@ public class RequestsServiceImpl implements RequestsService {
     private final EventJpaRepository eventJpaRepository;
     private final UserJpaRepository userJpaRepository;
     private final RequestsJpaRepository requestsJpaRepository;
+    private final RatingJpaRepository ratingJpaRepository;
 
     @Autowired
     public RequestsServiceImpl(EventJpaRepository eventJpaRepository,
                                UserJpaRepository userJpaRepository,
-                               RequestsJpaRepository requestsJpaRepository) {
+                               RequestsJpaRepository requestsJpaRepository,
+                               RatingJpaRepository ratingJpaRepository) {
         this.eventJpaRepository = eventJpaRepository;
         this.userJpaRepository = userJpaRepository;
         this.requestsJpaRepository = requestsJpaRepository;
+        this.ratingJpaRepository = ratingJpaRepository;
     }
 
     @Override
@@ -74,6 +79,7 @@ public class RequestsServiceImpl implements RequestsService {
             request.setStatus(RequestStates.PENDING);
         } else {
             request.setStatus(CONFIRMED);
+            createNewRatingRecord(request.getRequester().getId(), eventId);
         }
         request.setEvent(event);
         request.setCreated(LocalDateTime.now());
@@ -86,6 +92,9 @@ public class RequestsServiceImpl implements RequestsService {
         checkUser(userId);
         Request request = requestsJpaRepository.findById(requestId).orElseThrow(() -> new EventNotFoundException("Запроса не существует", "Запрос не найден в списке запросов"));
         request.setStatus(RequestStates.CANCELED);
+        Event event = checkEvent(request.getEvent().getId());
+        removeRatingRecord(userId, event.getId());
+        eventJpaRepository.save(event);
         return toParticipationRequestDto(requestsJpaRepository.save(request));
     }
 
@@ -102,5 +111,25 @@ public class RequestsServiceImpl implements RequestsService {
 
     private Long getConfirmedRequestsQty(Long eventId) {
         return requestsJpaRepository.findByEventIdAndStatus(eventId, CONFIRMED).stream().count();
+    }
+
+    private void removeRatingRecord(Long userId, Long eventId) {
+        Event event = eventJpaRepository.findById(eventId).get();
+        User user = userJpaRepository.findById(userId).get();
+        Rating rating = ratingJpaRepository.findByVisitorAndEvent(user, event);
+        if (rating != null) {
+            ratingJpaRepository.delete(rating);
+        }
+    }
+
+    private void createNewRatingRecord(Long userId, Long eventId) {
+        Event event = eventJpaRepository.findById(eventId).get();
+        User user = userJpaRepository.findById(userId).get();
+        Rating rating = new Rating();
+        rating.setEvent(event);
+        rating.setVisitor(user);
+        rating.setLiked(false);
+        rating.setDisliked(false);
+        ratingJpaRepository.save(rating);
     }
 }
