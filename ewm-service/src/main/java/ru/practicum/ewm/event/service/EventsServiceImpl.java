@@ -121,9 +121,10 @@ public class EventsServiceImpl implements EventsService {
         List<Long> eventsIds = extractEventsIds(eventList);
         Map<Long, Long> eventsLikes = getEventsLikes(eventsRatings, eventsIds);
         Map<Long, Long> eventsDislikes = getEventsLikes(eventsRatings, eventsIds);
+        Map<Long, Long> eventsConfirmedRequests = getConfirmedRequestsQtyForEventsList(eventList);
         return requestPage.getContent()
                 .stream()
-                .map(x -> createFullDto(x, eventsStats.get(x.getId()), eventsLikes.get(x.getId()), eventsDislikes.get(x.getId())))
+                .map(x -> createFullDto(x, eventsStats.get(x.getId()), eventsLikes.get(x.getId()), eventsDislikes.get(x.getId()), eventsConfirmedRequests.get(x.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -164,7 +165,7 @@ public class EventsServiceImpl implements EventsService {
 
         eventJpaRepository.save(event);
         List<Rating> eventRatings = ratingJpaRepository.findByEventId(eventId);
-        return createFullDto(event, getStatsForEvent(eventId), getEventLikes(eventRatings), getEventDislikes(eventRatings));
+        return createFullDto(event, getStatsForEvent(eventId), getEventLikes(eventRatings), getEventDislikes(eventRatings), getConfirmedRequestsQtyForEvent(eventId));
     }
 
     @Override
@@ -177,7 +178,7 @@ public class EventsServiceImpl implements EventsService {
             throw new IncorrectEventParamsException("Невозможно опубликовать событие", "До начала события мене часа, либо событие уже было опубликовано ранее");
         }
         List<Rating> eventRatings = ratingJpaRepository.findByEventId(eventId);
-        return createFullDto(eventJpaRepository.save(event), getStatsForEvent(eventId), getEventLikes(eventRatings), getEventDislikes(eventRatings));
+        return createFullDto(eventJpaRepository.save(event), getStatsForEvent(eventId), getEventLikes(eventRatings), getEventDislikes(eventRatings), getConfirmedRequestsQtyForEvent(eventId));
     }
 
     @Override
@@ -189,7 +190,7 @@ public class EventsServiceImpl implements EventsService {
             throw new IncorrectEventParamsException("Невозможно отклонить публикацию события", "Событие уже было опубликовано");
         }
         List<Rating> eventRatings = ratingJpaRepository.findByEventId(eventId);
-        return createFullDto(eventJpaRepository.save(event), getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings));
+        return createFullDto(eventJpaRepository.save(event), getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings), getConfirmedRequestsQtyForEvent(eventId));
     }
 
     @Override
@@ -247,19 +248,19 @@ public class EventsServiceImpl implements EventsService {
         if (EventSorting.valueOf(sort).equals(RATING)) {
             return eventList
                     .stream()
-                    .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId())))
+                    .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId()), confirmedRequests.get(x.getId())))
                     .sorted(Comparator.comparingLong(EventShortDto::getRating).reversed())
                     .collect(Collectors.toList());
         } else if (EventSorting.valueOf(sort).equals(VIEWS)) {
             return eventList
                     .stream()
-                    .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId())))
+                    .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId()), confirmedRequests.get(x.getId())))
                     .sorted(Comparator.comparingLong(EventShortDto::getViews).reversed())
                     .collect(Collectors.toList());
         }
         return eventList
                 .stream()
-                .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId())))
+                .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId()), confirmedRequests.get(x.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -268,7 +269,7 @@ public class EventsServiceImpl implements EventsService {
         Event event = eventJpaRepository.findEventByIdAndEventState(eventId, PUBLISHED).orElseThrow(() -> new EventNotFoundException("События с id " + eventId + " не существует", "Не найдено опубликованное событие с заданным id"));
         writeStats(ip, uri);
         List<Rating> eventRatings = ratingJpaRepository.findByEventId(eventId);
-        return createFullDto(event, getStatsForEvent(eventId), getEventLikes(eventRatings), getEventDislikes(eventRatings));
+        return createFullDto(event, getStatsForEvent(eventId), getEventLikes(eventRatings), getEventDislikes(eventRatings), getConfirmedRequestsQtyForEvent(eventId));
     }
 
     @Override
@@ -279,8 +280,9 @@ public class EventsServiceImpl implements EventsService {
         Map<Long, Long> eventsStats = getStatsForEventList(events, false);
         List<Rating> allEventsRatings = ratingJpaRepository.findByEventIdIn(extractEventsIds(events));
         Map<Long, Long> ratings = getEventsRatings(getEventsLikes(allEventsRatings, extractEventsIds(events)), getEventsDislikes(allEventsRatings, extractEventsIds(events)));
+        Map<Long, Long> confirmedRequests = getConfirmedRequestsQtyForEventsList(events);
         return events.stream()
-                .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId())))
+                .map(x -> createShortDto(x, eventsStats.get(x.getId()), ratings.get(x.getId()), confirmedRequests.get(x.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -328,7 +330,7 @@ public class EventsServiceImpl implements EventsService {
             throw new ForbiddenException("Невозможно редактировать событие", "Не выполнены условия для редактирования");
         }
         List<Rating> eventRatings = ratingJpaRepository.findByEventId(event.getId());
-        return createFullDto(eventJpaRepository.save(event), getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings));
+        return createFullDto(eventJpaRepository.save(event), getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings), getConfirmedRequestsQtyForEvent(event.getId()));
     }
 
     @Override
@@ -338,7 +340,7 @@ public class EventsServiceImpl implements EventsService {
         Event event = fromNewEventDto(newEventDto, category, user);
         event = eventJpaRepository.save(event);
         List<Rating> eventRatings = ratingJpaRepository.findByEventId(event.getId());
-        return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings));
+        return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings), getConfirmedRequestsQtyForEvent(event.getId()));
     }
 
     @Override
@@ -350,7 +352,7 @@ public class EventsServiceImpl implements EventsService {
             throw new ForbiddenException("Невозможно редактировать событие", "Инициатором события является другой пользователь");
         }
         List<Rating> eventRatings = ratingJpaRepository.findByEventId(event.getId());
-        return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings));
+        return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings), getConfirmedRequestsQtyForEvent(event.getId()));
     }
 
     @Override
@@ -364,7 +366,7 @@ public class EventsServiceImpl implements EventsService {
         if (event.getEventState().equals(PENDING)) {
             event.setEventState(CANCELED);
             List<Rating> eventRatings = ratingJpaRepository.findByEventId(event.getId());
-            return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings));
+            return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings), getConfirmedRequestsQtyForEvent(event.getId()));
         } else {
             throw new ForbiddenException("Невозможно отменить событие", "Событие не находится в ожидании модерации");
         }
@@ -435,7 +437,7 @@ public class EventsServiceImpl implements EventsService {
         }
         ratingJpaRepository.save(rating);
         List<Rating> eventRatings = ratingJpaRepository.findByEventId(event.getId());
-        return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings));
+        return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings), getConfirmedRequestsQtyForEvent(event.getId()));
     }
 
     public EventFullDto addDislike(Long userId, Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
@@ -455,7 +457,7 @@ public class EventsServiceImpl implements EventsService {
         }
         ratingJpaRepository.save(rating);
         List<Rating> eventRatings = ratingJpaRepository.findByEventId(event.getId());
-        return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings));
+        return createFullDto(event, getStatsForEvent(event.getId()), getEventLikes(eventRatings), getEventDislikes(eventRatings), getConfirmedRequestsQtyForEvent(eventId));
     }
 
     private void checkUser(Long id) throws UserNotFoundException {
@@ -506,20 +508,18 @@ public class EventsServiceImpl implements EventsService {
         return eventsHits;
     }
 
-    private EventShortDto createShortDto(Event event, Long views, Long rating) {
+    private EventShortDto createShortDto(Event event, Long views, Long rating, Long requests) {
         EventShortDto eventShortDto = toEventShortDto(event);
-        Long eventId = event.getId();
         eventShortDto.setViews(views);
-        eventShortDto.setConfirmedRequests(getConfirmedRequestsQtyForEvent(eventId));
+        eventShortDto.setConfirmedRequests(requests);
         eventShortDto.setRating(rating);
         return eventShortDto;
     }
 
-    private EventFullDto createFullDto(Event event, Long views, Long likes, Long dislikes) {
+    private EventFullDto createFullDto(Event event, Long views, Long likes, Long dislikes, Long requests) {
         EventFullDto eventFullDto = toEventFullDto(event);
-        Long eventId = event.getId();
         eventFullDto.setViews(views);
-        eventFullDto.setConfirmedRequests(getConfirmedRequestsQtyForEvent(eventId));
+        eventFullDto.setConfirmedRequests(requests);
         eventFullDto.setLikes(likes);
         eventFullDto.setDislikes(dislikes);
         eventFullDto.setRating(likes - dislikes);
