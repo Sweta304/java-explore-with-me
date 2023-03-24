@@ -45,7 +45,7 @@ public class PrivateEventsController {
     }
 
     @PostMapping
-    public EventFullDto updateEventByUser(@PathVariable @Positive Long userId, @RequestBody @Valid NewEventDto newEventDto) throws UserNotFoundException, CategoryNotFoundException {
+    public EventFullDto addEventByUser(@PathVariable @Positive Long userId, @RequestBody @Valid NewEventDto newEventDto) throws UserNotFoundException, CategoryNotFoundException {
         log.info("Создание нового события пользователем с id {}", userId);
         return eventsService.addEvent(userId, newEventDto);
     }
@@ -82,5 +82,17 @@ public class PrivateEventsController {
                                                       @PathVariable @Positive Long reqId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
         log.info("Отклонение запроса с id {} на участие в мероприятии с id {}", reqId, eventId);
         return eventsService.rejectEventRequest(userId, eventId, reqId);
+    }
+
+    @PatchMapping("/{eventId}/like")
+    public EventFullDto addLike(@PathVariable @Positive Long userId, @PathVariable @Positive Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
+        log.info("Пользователь с id {} ставит лайк событию с id {}", userId, eventId);
+        return eventsService.addLike(userId, eventId);
+    }
+
+    @PatchMapping("/{eventId}/dislike")
+    public EventFullDto addDislike(@PathVariable @Positive Long userId, @PathVariable @Positive Long eventId) throws UserNotFoundException, EventNotFoundException, ForbiddenException {
+        log.info("Пользователь с id {} ставит дизлайк событию с id {}", userId, eventId);
+        return eventsService.addDislike(userId, eventId);
     }
 }
